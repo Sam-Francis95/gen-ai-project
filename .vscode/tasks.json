@@ -1,0 +1,32 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Start Referral Loss Hunter API",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"--prefix",
+				"server",
+				"start"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Start CareFlow AI Frontend",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"--prefix",
+				"client",
+				"run",
+				"dev"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}
