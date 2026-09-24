@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Global Theme Variables */
+  --font-main: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --bg-app: #f8fafc;
+  --sidebar-bg: #0f172a;
+  --primary: #0d9488;
+  --primary-hover: #0f766e;
+  --primary-light: #f0fdfa;
+  --border: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+  
+  /* Status Colors */
+  --s-gray-bg: #f8fafc; --s-gray-text: #334155; --s-gray-dot: #64748b;
+  --s-blue-bg: #eff6ff; --s-blue-text: #1d4ed8; --s-blue-dot: #3b82f6;
+  --s-green-bg: #f0fdf4; --s-green-text: #15803d; --s-green-dot: #22c55e;
+  --s-yellow-bg: #fffbeb; --s-yellow-text: #b45309; --s-yellow-dot: #f59e0b;
+  --s-red-bg: #fef2f2; --s-red-text: #b91c1c; --s-red-dot: #ef4444;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+}
+
+/* ── Custom Scrollbar ── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ── Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ── Print Media Optimization ── */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .printable-area, .printable-area * {
+    visibility: visible;
+  }
+  .printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  @page {
+    size: auto;
+    margin: 12mm;
+  }
+  @page a5-card {
+    size: A5 portrait;
+    margin: 8mm;
+  }
+}
