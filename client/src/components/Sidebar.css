@@ -1,0 +1,124 @@
+.cf-sidebar {
+  width: 250px;
+  height: 100vh;
+  background-color: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 50;
+  padding: 1.25rem 0.875rem;
+}
+
+.cf-sidebar-brand {
+  padding: 0.25rem 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cf-brand-text {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.cf-sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow-y: auto;
+}
+
+/* Nav Item */
+.cf-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.75rem;
+  color: #64748b;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.cf-nav-item:hover {
+  color: #0f172a;
+  background-color: #f8fafc;
+}
+
+/* Active Nav Item */
+.cf-nav-item.cf-nav-active {
+  color: #2563eb;
+  background-color: #eff6ff;
+  font-weight: 600;
+}
+
+.cf-nav-item.cf-nav-active svg {
+  color: #2563eb;
+}
+
+/* Collapsible AI Group Header */
+.cf-nav-group-header {
+  justify-content: space-between;
+}
+
+.cf-nav-group-header.cf-group-active {
+  color: #2563eb;
+}
+
+/* Submenu Items */
+.cf-submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.cf-sub-item {
+  display: block;
+  padding: 0.4375rem 0.875rem;
+  border-radius: 0.625rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.cf-sub-item:hover {
+  color: #0f172a;
+  background-color: #f8fafc;
+}
+
+.cf-sub-item.cf-sub-active {
+  color: #2563eb;
+  background-color: #eff6ff;
+  font-weight: 600;
+}
+
+@media (max-width: 1024px) {
+  .cf-sidebar {
+    width: 72px;
+    padding: 1rem 0.5rem;
+  }
+  .cf-brand-text,
+  .cf-nav-item span,
+  .cf-submenu,
+  .cf-nav-group-header svg:last-child {
+    display: none;
+  }
+  .cf-nav-item {
+    justify-content: center;
+    padding: 0.625rem 0;
+  }
+}

@@ -1,0 +1,155 @@
+
+
+body {
+  margin: 0;
+  font-family: var(--font-main);
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  width: 100%;
+}
+
+.dashboard-container {
+  padding: 2.5rem;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* Header Overhaul */
+.dashboard-header {
+  margin-bottom: 2.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.dashboard-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--text-main);
+}
+
+.dashboard-header p {
+  color: var(--text-muted);
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+
+/* Premium Table Styles */
+.referral-table-container {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  overflow: hidden;
+}
+
+.table-header-row {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.table-header-row h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background: #f9fafb;
+  padding: 0.75rem 1.5rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
+  color: var(--text-main);
+  transition: all 0.2s ease;
+}
+
+tr:hover td {
+  background-color: #f9fafb;
+}
+
+/* Modern Status Badges with Dots */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.status-CREATED { background: var(--s-gray-bg); color: var(--s-gray-text); }
+.status-CREATED::before { background: var(--s-gray-dot); }
+
+.status-CONTACTED { background: var(--s-yellow-bg); color: var(--s-yellow-text); }
+.status-CONTACTED::before { background: var(--s-yellow-dot); }
+
+.status-BOOKED { background: var(--s-blue-bg); color: var(--s-blue-text); }
+.status-BOOKED::before { background: var(--s-blue-dot); }
+
+.status-VISITED { background: var(--s-green-bg); color: var(--s-green-text); }
+.status-VISITED::before { background: var(--s-green-dot); }
+
+.status-LOST { background: var(--s-red-bg); color: var(--s-red-text); }
+.status-LOST::before { background: var(--s-red-dot); }
+
+/* Priority Badges */
+.priority-badge {
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.priority-Urgent { color: #b42318; background: #fef3f2; }
+.priority-Normal { color: #344054; background: #f2f4f7; }
+
+/* Buttons */
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.625rem 1.125rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
