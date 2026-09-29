@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import { createReferral } from '../api/client';
 
-const NewReferralModal = ({ onClose, onCreated }) => {
+const NewReferralModal = ({ isOpen, onClose, onSuccess, onCreated }) => {
   const [formData, setFormData] = useState({
     patientName: '',
     phone: '',
@@ -18,9 +18,12 @@ const NewReferralModal = ({ onClose, onCreated }) => {
     setLoading(true);
     try {
       await createReferral(formData);
-      onCreated();
+      if (typeof onSuccess === 'function') onSuccess();
+      if (typeof onCreated === 'function') onCreated();
+      if (typeof onClose === 'function') onClose();
     } catch (err) {
-      alert('Failed to create referral');
+      console.error('Error creating referral:', err);
+      alert(err.response?.data?.message || err.message || 'Failed to create referral');
     } finally {
       setLoading(false);
     }

@@ -6,7 +6,8 @@ import {
   Send, Languages, Loader2, UploadCloud, BrainCircuit, ListChecks,
   Stethoscope, Pill, ShieldAlert, ChevronRight, Apple, Ban,
   Dumbbell, FlaskConical, Clock, Zap, CalendarCheck, FileText, MapPin,
-  Shield, Printer, Lock, CheckCircle, Edit3, Sparkles, HeartHandshake, FileCheck
+  Shield, Printer, Lock, CheckCircle, Edit3, Sparkles, HeartHandshake, FileCheck,
+  X, RotateCcw
 } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -127,6 +128,10 @@ function DischargeAI({ embedded = false, initialData = {}, defaultTab = 'dischar
 
   const handleSwitchMode = (mode) => {
     setActiveMode(mode);
+    setResult(null);
+    setReportFile(null);
+    const fileInput = document.getElementById('reportUpload');
+    if (fileInput) fileInput.value = '';
     if (embedded) return;
     if (mode === 'discharge') navigate('/discharge');
     else if (mode === 'summary') navigate('/report-summarizer');
@@ -202,10 +207,42 @@ function DischargeAI({ embedded = false, initialData = {}, defaultTab = 'dischar
     }
   }, [initialData.referralId]);
 
+  const [isDragging, setIsDragging] = useState(false);
+
   const handleInputChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleFileChange = (e) => {
-    if (e.target.files?.[0]) setReportFile(e.target.files[0]);
+    if (e.target.files?.[0]) {
+      setReportFile(e.target.files[0]);
+    }
+  };
+
+  const handleRemoveFile = (e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    setReportFile(null);
+    const fileInput = document.getElementById('reportUpload');
+    if (fileInput) fileInput.value = '';
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files?.[0]) {
+      setReportFile(e.dataTransfer.files[0]);
+    }
   };
 
   const handleVoiceInput = async () => {
@@ -231,6 +268,7 @@ function DischargeAI({ embedded = false, initialData = {}, defaultTab = 'dischar
       Object.keys(formData).forEach(key => data.append(key, formData[key]));
       if (initialData.referralId) data.append('referralId', initialData.referralId);
       if (reportFile) data.append('report', reportFile);
+      data.append('mode', activeMode);
       const res = await axios.post(`${API_URL}/discharge/generate`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
       setResult(res.data);
       setTranslation('');
@@ -394,6 +432,261 @@ function DischargeAI({ embedded = false, initialData = {}, defaultTab = 'dischar
   const panelClass = "bg-white border border-slate-200 shadow-sm rounded-2xl";
   const inputClass = "w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-300";
 
+  const renderReportSummarizer = () => (
+    <div className="space-y-6">
+      {/* Top Diagnostic Impression Banner */}
+      <div className={`${panelClass} p-5 border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50/60`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-xs font-semibold text-purple-700 uppercase tracking-wider m-0">Diagnostic Pathology & Lab Extraction</p>
+              {(result.reportFileName || reportFile?.name) && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                  <FileText className="w-3 h-3 text-purple-600" />
+                  <span className="max-w-[200px] truncate">{result.reportFileName || reportFile?.name}</span>
+                </span>
+              )}
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 m-0" style={{ fontSize: '22px' }}>{sd?.diagnosis || 'Diagnostic Lab Report'}</h2>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                setResult(null);
+                setReportFile(null);
+                const fileInput = document.getElementById('reportUpload');
+                if (fileInput) fileInput.value = '';
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 shadow-2xs transition-all cursor-pointer"
+            >
+              <RotateCcw className="w-3 h-3 text-slate-500" />
+              <span>New Report</span>
+            </button>
+            <SeverityBadge severity={sd?.severity} />
+            <span className="px-3 py-1 bg-purple-100/80 border border-purple-200 text-purple-800 rounded-full text-xs font-bold">
+              Lab Extracted
+            </span>
+          </div>
+        </div>
+        <p className="text-sm text-slate-700 mt-3 leading-relaxed">{sd?.aiAnalysis || sd?.clinicalImpression}</p>
+      </div>
+
+      {/* Biomarkers Table */}
+      <div className={`${panelClass} overflow-hidden border-purple-100`}>
+        <div className="px-5 py-3.5 bg-purple-50/70 border-b border-purple-100 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-purple-800">
+            <FlaskConical className="w-4 h-4 text-purple-600" />
+            <span>Extracted Biomarkers & Quantitative Parameters</span>
+          </div>
+          <span className="text-[11px] text-purple-600 font-medium">
+            {(sd?.biomarkers || []).length} Diagnostic Metrics Extracted
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
+                <th className="py-3 px-4">Test Description</th>
+                <th className="py-3 px-4">Observed Value</th>
+                <th className="py-3 px-4">Reference Range</th>
+                <th className="py-3 px-4">Status Flag</th>
+                <th className="py-3 px-4">Clinical Significance</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {(sd?.biomarkers || []).map((bio, i) => {
+                const isCrit = bio.flag?.includes('CRITICAL');
+                const isHigh = bio.flag === 'HIGH';
+                const isLow = bio.flag === 'LOW';
+                const flagClass = isCrit
+                  ? 'bg-red-50 text-red-700 border-red-200 font-bold animate-pulse'
+                  : isHigh
+                    ? 'bg-amber-50 text-amber-700 border-amber-200 font-semibold'
+                    : isLow
+                      ? 'bg-blue-50 text-blue-700 border-blue-200 font-semibold'
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+
+                return (
+                  <tr key={i} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-3 px-4 font-semibold text-slate-900">{bio.test}</td>
+                    <td className="py-3 px-4 font-bold text-slate-900 font-mono text-xs">{bio.value}</td>
+                    <td className="py-3 px-4 text-slate-500 font-mono text-[11px]">{bio.normalRange || 'N/A'}</td>
+                    <td className="py-3 px-4">
+                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] border ${flagClass}`}>
+                        {bio.flag || 'NORMAL'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-slate-600 text-[11px] leading-relaxed max-w-xs">{bio.significance}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Two Column Diagnostic Sections */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <SectionCard icon={Activity} title="ECG & Imaging Observations" color="#6366f1">
+          <BulletList items={sd?.imagingFindings} color="#4f46e5" icon={ChevronRight} />
+        </SectionCard>
+
+        <SectionCard icon={HeartHandshake} title="Patient Friendly Explanation" color="#059669">
+          <p className="text-xs text-slate-700 leading-relaxed m-0 p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl">
+            {sd?.patientExplanation || result?.patientSummary || "All diagnostic biomarkers have been compiled and verified."}
+          </p>
+        </SectionCard>
+      </div>
+
+      {/* Critical Alerts & Recommendations */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <SectionCard icon={ShieldAlert} title="Critical Diagnostic Alerts" color="#dc2626">
+          <BulletList items={sd?.criticalAlerts} color="#dc2626" icon={AlertCircle} />
+        </SectionCard>
+
+        <SectionCard icon={Stethoscope} title="Recommended Specialist Follow-up" color="#2563eb">
+          <BulletList items={sd?.recommendedConsultations} color="#2563eb" icon={ChevronRight} />
+        </SectionCard>
+      </div>
+    </div>
+  );
+
+  const renderCarePlan = () => (
+    <div className="space-y-6">
+      {/* Top Care Plan Banner */}
+      <div className={`${panelClass} p-5 border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50/50`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider m-0">Personalized Rehabilitation & Recovery</p>
+              {(result.reportFileName || reportFile?.name) && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  <FileText className="w-3 h-3 text-emerald-600" />
+                  <span className="max-w-[200px] truncate">{result.reportFileName || reportFile?.name}</span>
+                </span>
+              )}
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 m-0" style={{ fontSize: '22px' }}>{sd?.diagnosis || 'Rehabilitation Care Pathway'}</h2>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                setResult(null);
+                setReportFile(null);
+                const fileInput = document.getElementById('reportUpload');
+                if (fileInput) fileInput.value = '';
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 shadow-2xs transition-all cursor-pointer"
+            >
+              <RotateCcw className="w-3 h-3 text-slate-500" />
+              <span>New Plan</span>
+            </button>
+            <SeverityBadge severity={sd?.severity} />
+            <span className="px-3 py-1 bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-full text-xs font-bold">
+              Horizon: ~{sd?.targetRecoveryDays || 42} Days
+            </span>
+          </div>
+        </div>
+        <p className="text-sm text-slate-700 mt-3 leading-relaxed">{sd?.aiAnalysis}</p>
+      </div>
+
+      {/* Phased Rehabilitation Timeline */}
+      <div>
+        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <Clock className="w-4 h-4 text-emerald-600" />
+          <span>Phased Rehabilitation Pathway</span>
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {(sd?.recoveryPhases || []).map((phase, i) => (
+            <div key={i} className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                    {phase.timeframe}
+                  </span>
+                  <span className="text-[10px] font-semibold text-slate-400">
+                    {phase.status}
+                  </span>
+                </div>
+                <h4 className="text-xs font-bold text-slate-900 mb-2">{phase.phaseName}</h4>
+                
+                <div className="mb-3">
+                  <span className="text-[11px] font-semibold text-slate-500 block mb-1">Clinical Goals:</span>
+                  <ul className="space-y-1">
+                    {(phase.goals || []).map((g, gi) => (
+                      <li key={gi} className="text-xs text-slate-600 flex items-start gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
+                        <span>{g}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="pt-2.5 border-t border-slate-100">
+                <span className="text-[11px] font-semibold text-slate-500 block mb-1">Instructions:</span>
+                <ul className="space-y-1">
+                  {(phase.instructions || []).map((inst, ii) => (
+                    <li key={ii} className="text-[11px] text-slate-500 flex items-start gap-1">
+                      <ChevronRight className="w-3 h-3 text-slate-400 mt-0.5 shrink-0" />
+                      <span>{inst}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Physical Therapy Protocols */}
+      <div className={`${panelClass} p-5 border-teal-100`}>
+        <div className="flex items-center gap-2 mb-4 font-bold text-xs uppercase tracking-wider text-teal-800">
+          <Dumbbell className="w-4 h-4 text-teal-600" />
+          <span>Physical Therapy & Mobility Protocols</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {(sd?.physicalTherapy || []).map((pt, i) => (
+            <div key={i} className="p-3.5 bg-teal-50/40 rounded-xl border border-teal-100/80">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-bold text-slate-900 text-xs">{pt.exercise}</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 bg-teal-100 text-teal-800 rounded-full">
+                  {pt.frequency}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 m-0 leading-relaxed">{pt.instructions}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Therapeutic Nutrition Guidelines */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <SectionCard icon={Apple} title="Foods to Accelerate Healing" color="#059669">
+          <BulletList items={sd?.diet?.recommended} color="#059669" icon={CheckCircle2} />
+        </SectionCard>
+
+        <SectionCard icon={Ban} title="Foods & Substances to Strictly Avoid" color="#dc2626">
+          <BulletList items={sd?.diet?.avoid} color="#dc2626" icon={Ban} />
+        </SectionCard>
+      </div>
+
+      {/* Wound Care & Milestones */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <SectionCard icon={ShieldAlert} title="Wound Care & DVT Prevention" color="#2563eb">
+          <BulletList items={sd?.woundAndDvtCare} color="#2563eb" icon={ChevronRight} />
+        </SectionCard>
+
+        <SectionCard icon={CalendarCheck} title="Patient Recovery Milestones" color="#7c3aed">
+          <BulletList items={sd?.dailyMilestones} color="#7c3aed" icon={CheckCircle2} />
+        </SectionCard>
+      </div>
+    </div>
+  );
+
   return (
     <div className={embedded ? "w-full" : "min-h-screen p-4 md:p-8 bg-[#fcfcfd]"}>
       <Toaster position="top-right" />
@@ -471,10 +764,47 @@ function DischargeAI({ embedded = false, initialData = {}, defaultTab = 'dischar
           {/* Report Upload */}
           <div>
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{currentConfig.uploadLabel}</label>
-            <input type="file" id="reportUpload" className="hidden" onChange={handleFileChange} accept=".pdf,.txt" />
-            <label htmlFor="reportUpload" className="w-full flex flex-col items-center justify-center p-5 border-2 border-dashed border-indigo-200 rounded-xl cursor-pointer bg-indigo-50/50 hover:bg-indigo-50 transition-colors">
+            <input 
+              type="file" 
+              id="reportUpload" 
+              className="hidden" 
+              onChange={handleFileChange} 
+              onClick={(e) => { e.target.value = null; }}
+              accept=".pdf,.txt" 
+            />
+            <label 
+              htmlFor="reportUpload" 
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`w-full flex flex-col items-center justify-center p-5 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                isDragging 
+                  ? 'border-blue-500 bg-blue-50 scale-[1.01]' 
+                  : reportFile 
+                    ? 'border-indigo-400 bg-indigo-50/70' 
+                    : 'border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50'
+              }`}
+            >
               <UploadCloud className="w-7 h-7 text-indigo-500 mb-2" />
-              <span className="text-sm font-medium text-slate-700">{reportFile ? reportFile.name : "Click to upload PDF or Text"}</span>
+              {reportFile ? (
+                <div className="w-full flex items-center justify-between gap-2 p-2 bg-white/90 border border-indigo-200 rounded-lg shadow-2xs">
+                  <div className="flex items-center gap-2 overflow-hidden min-w-0">
+                    <FileText className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <span className="text-xs font-bold text-slate-800 truncate">{reportFile.name}</span>
+                    <span className="text-[10px] text-slate-500 shrink-0">({(reportFile.size / 1024).toFixed(1)} KB)</span>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={handleRemoveFile}
+                    className="p-1 rounded-md hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors shrink-0"
+                    title="Remove file"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <span className="text-sm font-medium text-slate-700">Click to upload or drag & drop PDF / Text</span>
+              )}
               <span className="text-xs text-slate-500 mt-1">{currentConfig.uploadSubtext}</span>
             </label>
           </div>
@@ -622,16 +952,21 @@ function DischargeAI({ embedded = false, initialData = {}, defaultTab = 'dischar
             </div>
           ) : (
             <div className="space-y-6 animate-fade-in">
-
-              {/* ACTION BAR: Quick Triggers for Claim Assistant & Multilingual Card */}
-              <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl shadow-md">
-                <div className="flex items-center gap-2.5">
-                  <Sparkles className="w-5 h-5 text-indigo-400" />
-                  <div>
-                    <span className="font-bold text-sm block">Advanced Clinical Operations</span>
-                    <span className="text-indigo-200 text-xs">Generate TPA claims or patient cards in 8 languages</span>
-                  </div>
-                </div>
+              {(activeMode === 'summary' || sd?.mode === 'summary') ? (
+                renderReportSummarizer()
+              ) : (activeMode === 'careplan' || sd?.mode === 'careplan') ? (
+                renderCarePlan()
+              ) : (
+                <div className="space-y-6">
+                  {/* ACTION BAR: Quick Triggers for Claim Assistant & Multilingual Card */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl shadow-md">
+                    <div className="flex items-center gap-2.5">
+                      <Sparkles className="w-5 h-5 text-indigo-400" />
+                      <div>
+                        <span className="font-bold text-sm block">Advanced Clinical Operations</span>
+                        <span className="text-indigo-200 text-xs">Generate TPA claims or patient cards in 8 languages</span>
+                      </div>
+                    </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* Feature 2 Button: Insurance Claim Assistant */}
@@ -660,14 +995,36 @@ function DischargeAI({ embedded = false, initialData = {}, defaultTab = 'dischar
               <div className={`${panelClass} p-5 border-indigo-200 bg-gradient-to-r from-indigo-50 to-blue-50/50`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">AI Diagnosis</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider m-0">AI Diagnosis</p>
+                      {(result.reportFileName || reportFile?.name) && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-100/80 text-blue-800 border border-blue-200/60">
+                          <FileText className="w-3 h-3 text-blue-600" />
+                          <span className="max-w-[180px] truncate">{result.reportFileName || reportFile?.name}</span>
+                        </span>
+                      )}
+                    </div>
                     <h2 className="text-2xl font-bold text-slate-900 m-0" style={{ fontSize: '22px' }}>{sd?.diagnosis || 'N/A'}</h2>
                   </div>
                   <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResult(null);
+                        setReportFile(null);
+                        const fileInput = document.getElementById('reportUpload');
+                        if (fileInput) fileInput.value = '';
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white/80 hover:bg-white border border-slate-200 shadow-2xs transition-all cursor-pointer"
+                      title="Upload and analyze another report"
+                    >
+                      <RotateCcw className="w-3 h-3 text-slate-500" />
+                      <span>New Analysis</span>
+                    </button>
                     <SeverityBadge severity={sd?.severity} />
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${result.validation.isValid ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
-                      {result.validation.isValid ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
-                      {result.validation.isValid ? 'Claims Ready' : `Missing: ${result.validation.missing.join(', ')}`}
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${result.validation?.isValid ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                      {result.validation?.isValid ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
+                      {result.validation?.isValid ? 'Claims Ready' : `Missing: ${(result.validation?.missing || []).join(', ')}`}
                     </div>
                   </div>
                 </div>
@@ -991,7 +1348,8 @@ function DischargeAI({ embedded = false, initialData = {}, defaultTab = 'dischar
                   </button>
                 </div>
               </div>
-
+                </div>
+              )}
             </div>
           )}
         </section>

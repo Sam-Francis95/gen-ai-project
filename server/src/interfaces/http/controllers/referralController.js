@@ -11,7 +11,9 @@ function buildReferralController({
         patientName: req.body.patientName,
         phone: req.body.phone,
         department: req.body.department,
-        doctor: req.body.doctor,
+        doctor: req.body.doctor || req.body.specialist,
+        specialist: req.body.specialist,
+        notes: req.body.notes,
         priority: req.body.priority,
       });
 
