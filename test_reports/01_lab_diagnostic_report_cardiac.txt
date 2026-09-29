@@ -1,0 +1,45 @@
+================================================================================
+METRO HEART INSTITUTE & DIAGNOSTIC LABS
+CLINICAL BIOCHEMISTRY & CARDIOLOGY REPORT
+================================================================================
+PATIENT NAME: Rajesh Verma
+AGE / GENDER: 54 Y / Male
+PATIENT ID: MRN-2026-98124
+REFERRING DOCTOR: Dr. Ananya Sen, MD (Cardiology)
+DATE OF COLLECTION: 28-Sep-2026 08:30 AM
+REPORT STATUS: Final & Verified
+
+--------------------------------------------------------------------------------
+1. CARDIAC BIOMARKERS PANEL
+--------------------------------------------------------------------------------
+Test Description              Observed Value    Reference Range     Flag
+--------------------------------------------------------------------------------
+High-Sensitivity Troponin-I   142.5 pg/mL       0.0 - 19.8 pg/mL    CRITICAL HIGH
+Creatine Kinase-MB (CK-MB)    38.4 ng/mL        0.0 - 4.9 ng/mL     HIGH
+Myoglobin                     110 ng/mL         25 - 72 ng/mL       HIGH
+B-Type Natriuretic Pept (BNP) 420 pg/mL         < 100 pg/mL         HIGH
+
+--------------------------------------------------------------------------------
+2. COMPREHENSIVE METABOLIC & LIPID PANEL
+--------------------------------------------------------------------------------
+Serum Creatinine              1.42 mg/dL        0.7 - 1.2 mg/dL     MILD HIGH
+Blood Urea Nitrogen (BUN)     26 mg/dL          7 - 20 mg/dL        HIGH
+Fasting Blood Glucose         168 mg/dL         70 - 99 mg/dL       HIGH
+HbA1c                         7.8 %             < 5.7 %             DIABETIC
+Total Cholesterol             248 mg/dL         < 200 mg/dL         HIGH
+Triglycerides                 210 mg/dL         < 150 mg/dL         HIGH
+LDL Cholesterol               158 mg/dL         < 100 mg/dL         HIGH
+HDL Cholesterol               36 mg/dL          > 40 mg/dL          LOW
+
+--------------------------------------------------------------------------------
+3. 12-LEAD ELECTROCARDIOGRAM (ECG) & ECHO FINDINGS
+--------------------------------------------------------------------------------
+- Sinus tachycardia with heart rate of 102 bpm.
+- ST-segment depression (1.5mm) in leads V4 to V6 and subtle T-wave inversions in Lead II, III, and aVF.
+- 2D-Echocardiogram: Mild hypokinesia of the mid to apical inferior and lateral wall. Left ventricular ejection fraction (LVEF) estimated at 48%.
+
+--------------------------------------------------------------------------------
+4. CLINICAL IMPRESSION & OBSERVATION
+--------------------------------------------------------------------------------
+Findings demonstrate acute myocardial injury consistent with Non-ST-Elevation Myocardial Infarction (NSTEMI) and underlying dyslipidemia with uncontrolled Type 2 Diabetes Mellitus. Patient warrants urgent anti-platelet therapy, statin titration, continuous telemetry monitoring, and coronary angiography evaluation.
+================================================================================

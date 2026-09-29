@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import {
   Mic, User, AlertCircle, CheckCircle2, MessageSquare, Activity,
   Send, Languages, Loader2, UploadCloud, BrainCircuit, ListChecks,
   Stethoscope, Pill, ShieldAlert, ChevronRight, Apple, Ban,
   Dumbbell, FlaskConical, Clock, Zap, CalendarCheck, FileText, MapPin,
-  Shield, Printer, Lock, CheckCircle, Edit3, Sparkles
+  Shield, Printer, Lock, CheckCircle, Edit3, Sparkles, HeartHandshake, FileCheck
 } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,6 +15,54 @@ import InsuranceClaimModal from '../components/InsuranceClaimModal';
 import DischargeCardModal from '../components/DischargeCardModal';
 
 const API_URL = 'http://localhost:5000';
+
+const MODE_CONFIG = {
+  discharge: {
+    id: 'discharge',
+    title: 'Discharge AI',
+    subtitle: 'Autonomous Clinical Intelligence & Discharge Engine',
+    badgeText: 'Fully AI-Driven · Discharge Suite',
+    badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+    icon: Activity,
+    iconBg: 'from-blue-500 to-indigo-600',
+    inputHeading: 'Patient & Discharge Data Input',
+    uploadLabel: '1. Upload Medical Report or Discharge Summary',
+    uploadSubtext: 'AI analyzes diagnoses, medications, and care plan',
+    submitText: 'Generate Discharge Summary',
+    analyzingText: 'AI Analyzing & Generating Plan...',
+    themeColor: '#2563eb'
+  },
+  summary: {
+    id: 'summary',
+    title: 'Report Summarizer',
+    subtitle: 'Autonomous Diagnostic Lab & Clinical Report Extraction',
+    badgeText: 'Diagnostic AI · Multimodal Parser',
+    badgeClass: 'bg-purple-50 text-purple-700 border-purple-100',
+    icon: FileText,
+    iconBg: 'from-purple-500 to-indigo-600',
+    inputHeading: 'Diagnostic Report Input',
+    uploadLabel: '1. Upload Medical Lab Report or Diagnostic PDF',
+    uploadSubtext: 'AI extracts abnormal biomarkers, clinical impressions & observations',
+    submitText: 'Summarize & Extract Clinical Report',
+    analyzingText: 'AI Parsing & Summarizing Diagnostic Report...',
+    themeColor: '#9333ea'
+  },
+  careplan: {
+    id: 'careplan',
+    title: 'Care Plan Assistant',
+    subtitle: 'Personalized Recovery Pathways, Nutrition & Rehabilitation',
+    badgeText: 'Recovery & Nutrition · Protocol Generator',
+    badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+    icon: HeartHandshake,
+    iconBg: 'from-emerald-500 to-teal-600',
+    inputHeading: 'Recovery & Rehabilitation Input',
+    uploadLabel: '1. Upload Medical History or Doctor Orders (Optional)',
+    uploadSubtext: 'AI constructs personalized diet, medication & recovery schedule',
+    submitText: 'Generate Personalized Care Plan',
+    analyzingText: 'AI Designing Personalized Care Plan...',
+    themeColor: '#059669'
+  }
+};
 
 const SectionCard = ({ icon: Icon, title, color, children }) => (
   <div className={`rounded-2xl border bg-white overflow-hidden shadow-sm`} style={{ borderColor: `${color}30` }}>
@@ -57,8 +106,36 @@ const SeverityBadge = ({ severity }) => {
   );
 };
 
-function DischargeAI({ embedded = false, initialData = {} }) {
+function DischargeAI({ embedded = false, initialData = {}, defaultTab = 'discharge' }) {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const getInitialMode = () => {
+    if (location.pathname.includes('report-summarizer') || searchParams.get('tab') === 'summary') return 'summary';
+    if (location.pathname.includes('care-plan') || searchParams.get('tab') === 'careplan') return 'careplan';
+    if (defaultTab && defaultTab !== 'discharge') return defaultTab;
+    return 'discharge';
+  };
+
+  const [activeMode, setActiveMode] = useState(getInitialMode);
+
+  useEffect(() => {
+    setActiveMode(getInitialMode());
+  }, [location.pathname, searchParams, defaultTab]);
+
+  const handleSwitchMode = (mode) => {
+    setActiveMode(mode);
+    if (embedded) return;
+    if (mode === 'discharge') navigate('/discharge');
+    else if (mode === 'summary') navigate('/report-summarizer');
+    else if (mode === 'careplan') navigate('/care-plan');
+  };
+
+  const currentConfig = MODE_CONFIG[activeMode] || MODE_CONFIG.discharge;
+  const CurrentIcon = currentConfig.icon;
+
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [reportFile, setReportFile] = useState(null);
@@ -323,20 +400,64 @@ function DischargeAI({ embedded = false, initialData = {} }) {
 
       {/* Header */}
       {!embedded && (
-        <header className="max-w-7xl mx-auto mb-10 flex items-center justify-between">
+        <header className="max-w-7xl mx-auto mb-6 flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <Activity className="text-white w-7 h-7" />
+            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${currentConfig.iconBg} flex items-center justify-center shadow-lg shadow-blue-500/20`}>
+              <CurrentIcon className="text-white w-7 h-7" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 tracking-tight" style={{ margin: 0, fontSize: '26px' }}>Discharge AI</h1>
-              <p className="text-slate-500 text-sm">Autonomous Clinical Intelligence & Discharge Engine</p>
+              <h1 className="text-3xl font-bold text-slate-900 tracking-tight" style={{ margin: 0, fontSize: '26px' }}>{currentConfig.title}</h1>
+              <p className="text-slate-500 text-sm">{currentConfig.subtitle}</p>
             </div>
           </div>
-          <div className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-full ${panelClass} bg-indigo-50 text-indigo-700 text-sm font-medium border-indigo-100`}>
-            <CheckCircle2 className="w-4 h-4" /> Fully AI-Driven
+          <div className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-full ${panelClass} ${currentConfig.badgeClass} text-sm font-medium`}>
+            <CheckCircle2 className="w-4 h-4" /> {currentConfig.badgeText}
           </div>
         </header>
+      )}
+
+      {/* AI Tool Switcher Tabs */}
+      {!embedded && (
+        <div className="max-w-7xl mx-auto mb-8 flex flex-wrap items-center gap-2 p-1.5 bg-slate-100 rounded-2xl w-fit border border-slate-200/80 shadow-xs">
+          <button
+            type="button"
+            onClick={() => handleSwitchMode('discharge')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeMode === 'discharge'
+                ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5" />
+            <span>Discharge AI</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleSwitchMode('summary')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeMode === 'summary'
+                ? 'bg-purple-600 text-white shadow-sm shadow-purple-500/30'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Report Summarizer</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleSwitchMode('careplan')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeMode === 'careplan'
+                ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+            }`}
+          >
+            <HeartHandshake className="w-3.5 h-3.5" />
+            <span>Care Plan Assistant</span>
+          </button>
+        </div>
       )}
 
       <main className={`max-w-7xl mx-auto grid grid-cols-1 ${embedded ? 'lg:grid-cols-1' : 'lg:grid-cols-[380px_1fr]'} gap-8 items-start`}>
@@ -344,31 +465,39 @@ function DischargeAI({ embedded = false, initialData = {} }) {
         {/* LEFT: Input Panel */}
         <section className={`${panelClass} p-6 flex flex-col gap-5`}>
           <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2 m-0">
-            <BrainCircuit className="text-blue-500 w-5 h-5" /> Patient Data Input
+            <BrainCircuit className="text-blue-500 w-5 h-5" /> {currentConfig.inputHeading}
           </h2>
 
           {/* Report Upload */}
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">1. Upload Medical Report</label>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{currentConfig.uploadLabel}</label>
             <input type="file" id="reportUpload" className="hidden" onChange={handleFileChange} accept=".pdf,.txt" />
             <label htmlFor="reportUpload" className="w-full flex flex-col items-center justify-center p-5 border-2 border-dashed border-indigo-200 rounded-xl cursor-pointer bg-indigo-50/50 hover:bg-indigo-50 transition-colors">
               <UploadCloud className="w-7 h-7 text-indigo-500 mb-2" />
               <span className="text-sm font-medium text-slate-700">{reportFile ? reportFile.name : "Click to upload PDF or Text"}</span>
-              <span className="text-xs text-slate-500 mt-1">AI analyzes report content to generate plan</span>
+              <span className="text-xs text-slate-500 mt-1">{currentConfig.uploadSubtext}</span>
             </label>
           </div>
 
           {/* Notes */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">2. Additional Notes</label>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                {activeMode === 'summary' ? '2. Clinical Notes or Lab Observations' : (activeMode === 'careplan' ? '2. Recovery Goals & Patient Condition' : '2. Additional Notes')}
+              </label>
               <button onClick={handleVoiceInput} disabled={recording}
                 className={`flex items-center gap-1.5 px-3 py-1 text-xs rounded-full font-medium transition-all ${recording ? 'bg-red-50 text-red-600 border border-red-200 animate-pulse' : 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100'}`}>
                 <Mic className="w-3 h-3" />{recording ? 'Listening...' : 'Dictate'}
               </button>
             </div>
             <textarea name="rawText" value={formData.rawText} onChange={handleInputChange} rows="3"
-              className={`${inputClass} resize-none`} placeholder="Symptoms, history, or any additional context..." />
+              className={`${inputClass} resize-none`} placeholder={
+                activeMode === 'summary' 
+                  ? "Paste lab findings, abnormal biomarkers, or doctor notes..."
+                  : (activeMode === 'careplan' 
+                      ? "Specify recovery goals, mobility constraints, dietary preferences..."
+                      : "Symptoms, history, or any additional context...")
+              } />
           </div>
 
           {/* Patient Details */}
@@ -383,7 +512,7 @@ function DischargeAI({ embedded = false, initialData = {} }) {
 
           <button onClick={handleGenerate} disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 mt-2 py-3 rounded-xl cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md shadow-blue-500/20">
             {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Send className="w-4 h-4" />}
-            {loading ? 'AI Analyzing Report...' : 'Generate Discharge Summary'}
+            {loading ? currentConfig.analyzingText : currentConfig.submitText}
           </button>
         </section>
 
@@ -392,49 +521,103 @@ function DischargeAI({ embedded = false, initialData = {} }) {
           {!result ? (
             <div className={`${panelClass} p-6 sm:p-8 bg-white border border-slate-200`}>
               <h3 className="text-sm font-bold text-slate-900 m-0 mb-5 pb-3 border-b border-slate-100 flex items-center gap-2">
-                <BrainCircuit className="w-4 h-4 text-blue-600" /> AI Analysis Flow
+                <BrainCircuit className="w-4 h-4 text-blue-600" /> 
+                {activeMode === 'summary' ? 'Report Summarizer Diagnostic Workflow' : (activeMode === 'careplan' ? 'Care Plan Recovery Protocol' : 'AI Analysis Flow')}
               </h3>
 
               <div className="space-y-4">
-                <div className="flex items-start gap-4 p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center shrink-0">
-                    01
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900 m-0">Analyze Report</h4>
-                    <p className="text-[11px] text-slate-500 m-0 mt-0.5">Extract key medical information using AI</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0">
-                    02
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900 m-0">Generate Draft Summary</h4>
-                    <p className="text-[11px] text-slate-500 m-0 mt-0.5">Create discharge summary and care plan</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 font-bold text-xs flex items-center justify-center shrink-0">
-                    03
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900 m-0">Doctor Review</h4>
-                    <p className="text-[11px] text-slate-500 m-0 mt-0.5">Clinician reviews and edits the summary</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center shrink-0">
-                    04
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900 m-0">Finalize & Save</h4>
-                    <p className="text-[11px] text-slate-500 m-0 mt-0.5">Save to patient records & generate claims</p>
-                  </div>
-                </div>
+                {activeMode === 'summary' ? (
+                  <>
+                    <div className="flex items-start gap-4 p-3.5 rounded-xl bg-purple-50/60 border border-purple-100">
+                      <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center shrink-0">01</div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 m-0">Multimodal Report Ingestion</h4>
+                        <p className="text-[11px] text-slate-500 m-0 mt-0.5">Upload blood tests, imaging summaries, or diagnostic reports</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4 p-3.5 rounded-xl bg-purple-50/60 border border-purple-100">
+                      <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center shrink-0">02</div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 m-0">Biomarker & Abnormality Extraction</h4>
+                        <p className="text-[11px] text-slate-500 m-0 mt-0.5">Flags critical diagnostic values, primary diagnoses, and severity ratings</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4 p-3.5 rounded-xl bg-purple-50/60 border border-purple-100">
+                      <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center shrink-0">03</div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 m-0">Layperson Translation</h4>
+                        <p className="text-[11px] text-slate-500 m-0 mt-0.5">Converts complex medical jargon into easy-to-understand explanations</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4 p-3.5 rounded-xl bg-purple-50/60 border border-purple-100">
+                      <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center shrink-0">04</div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 m-0">Actionable Diagnostics & Tests</h4>
+                        <p className="text-[11px] text-slate-500 m-0 mt-0.5">Recommends necessary follow-up panels and clinical consultations</p>
+                      </div>
+                    </div>
+                  </>
+                ) : activeMode === 'careplan' ? (
+                  <>
+                    <div className="flex items-start gap-4 p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-100">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center shrink-0">01</div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 m-0">Phased Recovery Pathway</h4>
+                        <p className="text-[11px] text-slate-500 m-0 mt-0.5">Designs immediate, short-term (1-2 weeks), and long-term milestones</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4 p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-100">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center shrink-0">02</div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 m-0">Therapeutic Nutrition Guide</h4>
+                        <p className="text-[11px] text-slate-500 m-0 mt-0.5">Categorizes vital recommended foods vs strictly forbidden items</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4 p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-100">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center shrink-0">03</div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 m-0">Lifestyle & Medication Synchronization</h4>
+                        <p className="text-[11px] text-slate-500 m-0 mt-0.5">Integrates dosage schedules with rest, hydration, and gentle activity</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4 p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-100">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center shrink-0">04</div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 m-0">Follow-up WhatsApp Integration</h4>
+                        <p className="text-[11px] text-slate-500 m-0 mt-0.5">Automates patient reminders for return visits and clinical reviews</p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-start gap-4 p-3.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center shrink-0">01</div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 m-0">Analyze Report</h4>
+                        <p className="text-[11px] text-slate-500 m-0 mt-0.5">Extract key medical information using AI</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4 p-3.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0">02</div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 m-0">Generate Draft Summary</h4>
+                        <p className="text-[11px] text-slate-500 m-0 mt-0.5">Create discharge summary and care plan</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4 p-3.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 font-bold text-xs flex items-center justify-center shrink-0">03</div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 m-0">Doctor Review</h4>
+                        <p className="text-[11px] text-slate-500 m-0 mt-0.5">Clinician reviews and edits the summary</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4 p-3.5 rounded-xl bg-emerald-100 text-emerald-700 font-bold text-xs flex items-center justify-center shrink-0">04</div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900 m-0">Finalize & Save</h4>
+                      <p className="text-[11px] text-slate-500 m-0 mt-0.5">Save to patient records & generate claims</p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           ) : (

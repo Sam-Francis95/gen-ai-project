@@ -230,15 +230,15 @@ export default function Analytics() {
             <h3 className="text-sm font-bold text-slate-900 m-0">Department-wise Referrals</h3>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 my-auto">
+          <div className="flex flex-row items-center justify-center gap-6 my-auto">
             {/* Donut Container with Center Label */}
-            <div className="relative w-36 h-36 shrink-0 flex items-center justify-center">
+            <div className="relative w-32 h-32 shrink-0 flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={DEPT_PIE_DATA}
-                    innerRadius={46}
-                    outerRadius={65}
+                    innerRadius={42}
+                    outerRadius={60}
                     paddingAngle={3}
                     dataKey="value"
                   >
@@ -249,20 +249,20 @@ export default function Analytics() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-lg font-black text-slate-900 leading-none">86</span>
-                <span className="text-[10px] text-slate-400 font-medium uppercase mt-0.5">Total</span>
+                <span className="text-xl font-extrabold text-slate-900 leading-none">86</span>
+                <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase mt-1">TOTAL</span>
               </div>
             </div>
 
             {/* Department Legend */}
-            <div className="space-y-1.5 text-xs w-full sm:w-auto">
+            <div className="space-y-2 text-xs flex-1 max-w-[170px]">
               {DEPT_PIE_DATA.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></span>
-                    <span className="text-slate-600 text-[11px] font-medium">{item.name}</span>
+                <div key={idx} className="flex items-center justify-between gap-2 py-0.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }}></span>
+                    <span className="text-slate-600 text-xs font-medium whitespace-nowrap truncate">{item.name}</span>
                   </div>
-                  <span className="font-bold text-slate-800 text-[11px]">{item.value}%</span>
+                  <span className="font-bold text-slate-800 text-xs tabular-nums text-right shrink-0">{item.value}%</span>
                 </div>
               ))}
             </div>

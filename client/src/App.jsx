@@ -39,7 +39,9 @@ function App() {
               <Route path="incoming" element={<IncomingReferrals />} />
               <Route path="settings" element={<Settings />} />
               <Route path="referral/:id" element={<ReferralDetails />} />
-              <Route path="discharge" element={<DischargeAI />} />
+              <Route path="discharge" element={<DischargeAI defaultTab="discharge" />} />
+              <Route path="report-summarizer" element={<DischargeAI defaultTab="summary" />} />
+              <Route path="care-plan" element={<DischargeAI defaultTab="careplan" />} />
               <Route path="*" element={<Dashboard />} />
             </Route>
           </Routes>

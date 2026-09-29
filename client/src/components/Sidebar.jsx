@@ -23,7 +23,9 @@ const Sidebar = () => {
   const location = useLocation();
   const [aiToolsOpen, setAiToolsOpen] = useState(true);
 
-  const isAiActive = location.pathname.startsWith('/discharge');
+  const isAiActive = location.pathname.startsWith('/discharge') || 
+                     location.pathname.startsWith('/report-summarizer') || 
+                     location.pathname.startsWith('/care-plan');
 
   return (
     <aside className="cf-sidebar">
@@ -102,21 +104,21 @@ const Sidebar = () => {
             <div className="cf-submenu pl-6 space-y-1 mt-1">
               <NavLink 
                 to="/discharge" 
-                className={({ isActive }) => `cf-sub-item ${isActive ? 'cf-sub-active' : ''}`}
+                className={({ isActive }) => `cf-sub-item ${isActive && !location.pathname.includes('report-summarizer') && !location.pathname.includes('care-plan') && !location.search.includes('tab=') ? 'cf-sub-active' : ''}`}
               >
                 <span>Discharge AI</span>
               </NavLink>
               
               <NavLink 
-                to="/discharge?tab=summary" 
-                className={({ isActive }) => `cf-sub-item ${isActive && location.search.includes('summary') ? 'cf-sub-active' : ''}`}
+                to="/report-summarizer" 
+                className={({ isActive }) => `cf-sub-item ${isActive || location.pathname.includes('report-summarizer') || location.search.includes('summary') ? 'cf-sub-active' : ''}`}
               >
                 <span>Report Summarizer</span>
               </NavLink>
 
               <NavLink 
-                to="/discharge?tab=careplan" 
-                className={({ isActive }) => `cf-sub-item ${isActive && location.search.includes('careplan') ? 'cf-sub-active' : ''}`}
+                to="/care-plan" 
+                className={({ isActive }) => `cf-sub-item ${isActive || location.pathname.includes('care-plan') || location.search.includes('careplan') ? 'cf-sub-active' : ''}`}
               >
                 <span>Care Plan Assistant</span>
               </NavLink>
