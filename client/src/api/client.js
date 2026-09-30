@@ -26,6 +26,8 @@ export const fetchReferralStats = () => api.get('/referrals/stats').then(unwrap)
 
 export const createReferral = (data) => api.post('/referrals', data).then(unwrap);
 
+export const updateReferral = (id, data) => api.put(`/referrals/${id}`, data).then(unwrap);
+
 export const updateReferralStatus = (id, data) => api.put(`/referrals/${id}/status`, data).then(unwrap);
 
 // Feature 1: Patient Recovery Tracker

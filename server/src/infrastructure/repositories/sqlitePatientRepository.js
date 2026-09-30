@@ -23,6 +23,13 @@ class SqlitePatientRepository {
       createdAt,
     };
   }
+
+  async update(id, { name, phone }) {
+    await this.db.run(
+      'UPDATE patients SET name = ?, phone = ? WHERE id = ?',
+      [name, phone, id]
+    );
+  }
 }
 
 module.exports = { SqlitePatientRepository };

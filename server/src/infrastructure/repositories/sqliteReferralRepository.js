@@ -142,6 +142,23 @@ class SqliteReferralRepository {
     );
   }
 
+  async updateDetails(referralId, { department, doctor, specialist, notes, priority, status }) {
+    const fields = ['updated_at = ?'];
+    const params = [new Date().toISOString()];
+    if (department !== undefined) { fields.push('department = ?'); params.push(department); }
+    if (doctor !== undefined) { fields.push('doctor = ?'); params.push(doctor); }
+    if (specialist !== undefined) { fields.push('specialist = ?'); params.push(specialist); }
+    if (notes !== undefined) { fields.push('notes = ?'); params.push(notes); }
+    if (priority !== undefined) { fields.push('priority = ?'); params.push(priority); }
+    if (status !== undefined) { fields.push('status = ?'); params.push(status); }
+    params.push(referralId);
+
+    await this.db.run(
+      `UPDATE referrals SET ${fields.join(', ')} WHERE id = ?`,
+      params
+    );
+  }
+
   async getStats() {
     const totalRow = await this.db.get(
       'SELECT COUNT(*) as total FROM referrals'

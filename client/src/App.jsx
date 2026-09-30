@@ -14,6 +14,7 @@ import IncomingReferrals from './pages/IncomingReferrals'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 
 import { AnimatePresence } from 'framer-motion'
+import { Toaster } from 'react-hot-toast'
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -24,6 +25,7 @@ const PrivateRoute = ({ children }) => {
 function App() {
   return (
     <AuthProvider>
+      <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
       <Router>
         <AnimatePresence mode="wait">
           <Routes>

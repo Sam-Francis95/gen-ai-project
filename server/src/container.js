@@ -44,6 +44,8 @@ function buildContainer({ db }) {
     getReferralById,
     listReferrals,
     getReferralStats,
+    patientRepo,
+    referralRepo,
   });
 
   return {

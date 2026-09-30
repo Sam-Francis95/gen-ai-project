@@ -9,6 +9,7 @@ function buildReferralRoutes({ referralController }) {
   router.get('/', asyncHandler(referralController.list));
   router.get('/:id', asyncHandler(referralController.getById));
   router.post('/', asyncHandler(referralController.createReferral));
+  router.put('/:id', asyncHandler(referralController.updateDetails));
   router.put('/:id/status', asyncHandler(referralController.updateStatus));
 
   return router;

@@ -4,6 +4,8 @@ function buildReferralController({
   getReferralById,
   listReferrals,
   getReferralStats,
+  patientRepo,
+  referralRepo,
 }) {
   return {
     createReferral: async (req, res) => {
@@ -18,6 +20,32 @@ function buildReferralController({
       });
 
       res.status(201).json({ data: referral });
+    },
+
+    updateDetails: async (req, res) => {
+      const referral = await getReferralById(req.params.id);
+      if (!referral) return res.status(404).json({ error: 'Referral not found' });
+
+      const { patientName, phone, department, doctor, specialist, notes, priority, status } = req.body;
+
+      if (referral.patient && (patientName || phone)) {
+        await patientRepo.update(referral.patient.id, {
+          name: patientName || referral.patient.name,
+          phone: phone || referral.patient.phone
+        });
+      }
+
+      await referralRepo.updateDetails(req.params.id, {
+        department,
+        doctor: doctor !== undefined ? doctor : specialist,
+        specialist: specialist !== undefined ? specialist : doctor,
+        notes,
+        priority,
+        status
+      });
+
+      const updated = await getReferralById(req.params.id);
+      res.json({ data: updated, message: 'Referral updated successfully' });
     },
 
     updateStatus: async (req, res) => {
