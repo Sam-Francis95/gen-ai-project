@@ -11,6 +11,7 @@ function buildReferralRoutes({ referralController }) {
   router.post('/', asyncHandler(referralController.createReferral));
   router.put('/:id', asyncHandler(referralController.updateDetails));
   router.put('/:id/status', asyncHandler(referralController.updateStatus));
+  router.delete('/:id', asyncHandler(referralController.deleteReferral));
 
   return router;
 }

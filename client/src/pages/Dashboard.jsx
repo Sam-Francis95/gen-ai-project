@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   Users, Calendar, Clock, TrendingUp, Timer, FileText, 
   ChevronDown, ExternalLink, ArrowUpRight, ArrowDownRight, 
-  CheckCircle2, Building2, User, Sparkles, MoreVertical, Plus 
+  CheckCircle2, Building2, User, Sparkles, MoreVertical, Plus, Check 
 } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, 
@@ -13,15 +13,68 @@ import { fetchReferrals, fetchReferralStats } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import NewReferralModal from '../components/NewReferralModal';
 
-const TREND_DATA = [
-  { day: '18 Sep', count: 12 },
-  { day: '19 Sep', count: 15 },
-  { day: '20 Sep', count: 14 },
-  { day: '21 Sep', count: 18 },
-  { day: '22 Sep', count: 16 },
-  { day: '23 Sep', count: 21 },
-  { day: '24 Sep', count: 24 },
+const RANGE_OPTIONS = [
+  { id: 'today', label: 'Today' },
+  { id: 'yesterday', label: 'Yesterday' },
+  { id: '7days', label: 'Last 7 Days' },
+  { id: '30days', label: 'Last 30 Days' },
+  { id: 'month', label: 'This Month' },
+  { id: 'all', label: 'All Time' },
 ];
+
+const TREND_DATA_MAP = {
+  today: [
+    { day: '08:00', count: 3 },
+    { day: '10:00', count: 7 },
+    { day: '12:00', count: 12 },
+    { day: '14:00', count: 18 },
+    { day: '16:00', count: 21 },
+    { day: '18:00', count: 24 },
+  ],
+  yesterday: [
+    { day: '08:00', count: 2 },
+    { day: '10:00', count: 5 },
+    { day: '12:00', count: 10 },
+    { day: '14:00', count: 14 },
+    { day: '16:00', count: 18 },
+    { day: '18:00', count: 20 },
+  ],
+  '7days': [
+    { day: '18 Sep', count: 12 },
+    { day: '19 Sep', count: 15 },
+    { day: '20 Sep', count: 14 },
+    { day: '21 Sep', count: 18 },
+    { day: '22 Sep', count: 16 },
+    { day: '23 Sep', count: 21 },
+    { day: '24 Sep', count: 24 },
+  ],
+  '30days': [
+    { day: 'Week 1', count: 52 },
+    { day: 'Week 2', count: 68 },
+    { day: 'Week 3', count: 81 },
+    { day: 'Week 4', count: 94 },
+  ],
+  month: [
+    { day: '1-7 Sep', count: 60 },
+    { day: '8-14 Sep', count: 74 },
+    { day: '15-21 Sep', count: 88 },
+    { day: '22-28 Sep', count: 102 },
+  ],
+  all: [
+    { day: 'May', count: 120 },
+    { day: 'Jun', count: 165 },
+    { day: 'Jul', count: 195 },
+    { day: 'Aug', count: 230 },
+    { day: 'Sep', count: 275 },
+  ],
+  custom: [
+    { day: '09:00', count: 4 },
+    { day: '11:00', count: 9 },
+    { day: '13:00', count: 15 },
+    { day: '15:00', count: 20 },
+    { day: '17:00', count: 25 },
+  ]
+};
 
 const DEPT_DATA = [
   { name: 'Cardiology', value: 28, color: '#2563eb' },
@@ -80,7 +133,33 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [timeFilter, setTimeFilter] = useState('7days');
+  
+  // Interactive Date & Range Filter state
+  const [timeFilter, setTimeFilter] = useState('today');
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  const [isRangeDropdownOpen, setIsRangeDropdownOpen] = useState(false);
+  const [isChartRangeDropdownOpen, setIsChartRangeDropdownOpen] = useState(false);
+
+  const rangeDropdownRef = useRef(null);
+  const chartRangeDropdownRef = useRef(null);
+  const dateInputRef = useRef(null);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (rangeDropdownRef.current && !rangeDropdownRef.current.contains(e.target)) {
+        setIsRangeDropdownOpen(false);
+      }
+      if (chartRangeDropdownRef.current && !chartRangeDropdownRef.current.contains(e.target)) {
+        setIsChartRangeDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -105,6 +184,55 @@ export default function Dashboard() {
     return referrals.length > 0 ? (120 + referrals.length) : 124;
   }, [referrals]);
 
+  // Format date display label
+  const formattedDisplayDate = useMemo(() => {
+    if (timeFilter === 'custom' && selectedDate) {
+      const parts = selectedDate.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      }
+    }
+    if (timeFilter === 'yesterday') {
+      const y = new Date();
+      y.setDate(y.getDate() - 1);
+      return y.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    if (timeFilter === '7days') return 'Past 7 Days';
+    if (timeFilter === '30days') return 'Past 30 Days';
+    if (timeFilter === 'month') return 'This Month';
+    if (timeFilter === 'all') return 'All Time';
+
+    // Default 'today'
+    const today = new Date();
+    return today.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  }, [timeFilter, selectedDate]);
+
+  const activeRangeLabel = useMemo(() => {
+    if (timeFilter === 'custom') return 'Custom Date';
+    return RANGE_OPTIONS.find(o => o.id === timeFilter)?.label || 'Today';
+  }, [timeFilter]);
+
+  const currentTrendData = useMemo(() => {
+    return TREND_DATA_MAP[timeFilter] || TREND_DATA_MAP['7days'];
+  }, [timeFilter]);
+
+  const handleOpenDatePicker = () => {
+    if (dateInputRef.current) {
+      if (typeof dateInputRef.current.showPicker === 'function') {
+        dateInputRef.current.showPicker();
+      } else {
+        dateInputRef.current.focus();
+        dateInputRef.current.click();
+      }
+    }
+  };
+
+  const handleDateChange = (e) => {
+    setSelectedDate(e.target.value);
+    setTimeFilter('custom');
+  };
+
   return (
     <div className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto animate-fade-in bg-[#f8fafc]">
       
@@ -121,16 +249,72 @@ export default function Dashboard() {
 
         {/* Date and Time Filters */}
         <div className="flex items-center gap-2.5">
-          <div className="bg-white border border-slate-200/90 rounded-xl px-3.5 py-1.5 text-xs text-slate-700 font-medium shadow-2xs flex items-center gap-2">
-            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-            <span>Wed, 24 Sep 2026</span>
+          {/* Clickable Date Picker Pill */}
+          <div className="relative">
+            <button 
+              onClick={handleOpenDatePicker}
+              className="bg-white hover:bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-1.5 text-xs text-slate-700 font-medium shadow-2xs flex items-center gap-2 cursor-pointer transition-all hover:border-slate-300"
+              title="Click to select a date"
+            >
+              <Calendar className="w-3.5 h-3.5 text-blue-500" />
+              <span>{formattedDisplayDate}</span>
+            </button>
+            <input 
+              ref={dateInputRef}
+              type="date"
+              value={selectedDate}
+              onChange={handleDateChange}
+              className="absolute opacity-0 pointer-events-none w-0 h-0"
+            />
           </div>
 
-          <div className="relative">
-            <button className="bg-white border border-slate-200/90 hover:bg-slate-50 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs flex items-center gap-1.5 cursor-pointer">
-              <span>Today</span>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
+          {/* Interactive Range Filter Dropdown */}
+          <div className="relative" ref={rangeDropdownRef}>
+            <button 
+              onClick={() => setIsRangeDropdownOpen(!isRangeDropdownOpen)}
+              className="bg-white border border-slate-200/90 hover:bg-slate-50 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all hover:border-slate-300"
+            >
+              <span>{activeRangeLabel}</span>
+              <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-150 ${isRangeDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
+
+            {isRangeDropdownOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-slate-200/90 py-1.5 z-50 text-left animate-in fade-in zoom-in-95 duration-100">
+                <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Select Range
+                </div>
+                {RANGE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => {
+                      setTimeFilter(opt.id);
+                      setIsRangeDropdownOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-1.5 text-xs transition-colors cursor-pointer text-left ${
+                      timeFilter === opt.id 
+                        ? 'bg-blue-50 text-blue-600 font-bold' 
+                        : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>{opt.label}</span>
+                    {timeFilter === opt.id && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                  </button>
+                ))}
+                <div className="my-1 border-t border-slate-100" />
+                <button
+                  onClick={() => {
+                    setIsRangeDropdownOpen(false);
+                    handleOpenDatePicker();
+                  }}
+                  className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer text-left"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                    Custom Date...
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -179,7 +363,7 @@ export default function Dashboard() {
         {/* Card 3: Today's Appointments */}
         <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-all">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-slate-500">Today's Appointments</span>
+            <span className="text-xs font-medium text-slate-500">Appointments</span>
             <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
               <Calendar className="w-4 h-4" />
             </div>
@@ -261,15 +445,44 @@ export default function Dashboard() {
         <div className="lg:col-span-5 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-slate-900 m-0">Referral Trends</h3>
-            <button className="bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-xl px-2.5 py-1 text-xs text-slate-600 font-semibold flex items-center gap-1 cursor-pointer">
-              <span>Last 7 Days</span>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
-            </button>
+            
+            {/* Chart Range Filter */}
+            <div className="relative" ref={chartRangeDropdownRef}>
+              <button 
+                onClick={() => setIsChartRangeDropdownOpen(!isChartRangeDropdownOpen)}
+                className="bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-xl px-2.5 py-1 text-xs text-slate-600 font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <span>{activeRangeLabel}</span>
+                <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${isChartRangeDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isChartRangeDropdownOpen && (
+                <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-xl shadow-lg border border-slate-200/90 py-1 z-40 text-left">
+                  {RANGE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => {
+                        setTimeFilter(opt.id);
+                        setIsChartRangeDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-1.5 text-xs transition-colors cursor-pointer text-left ${
+                        timeFilter === opt.id 
+                          ? 'bg-blue-50 text-blue-600 font-bold' 
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{opt.label}</span>
+                      {timeFilter === opt.id && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={TREND_DATA} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+              <AreaChart data={currentTrendData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                 <defs>
                   <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25}/>
@@ -286,7 +499,7 @@ export default function Dashboard() {
                   tickLine={false} 
                   axisLine={false} 
                   tick={{ fontSize: 10, fill: '#94a3b8' }} 
-                  domain={[0, 30]}
+                  domain={[0, 'dataMax + 5']}
                 />
                 <Tooltip 
                   content={({ active, payload, label }) => {
@@ -321,15 +534,14 @@ export default function Dashboard() {
             <h3 className="text-sm font-bold text-slate-900 m-0">Referrals by Department</h3>
           </div>
 
-          <div className="flex flex-row items-center justify-center gap-6 my-auto">
-            {/* Donut Container with Center Label */}
-            <div className="relative w-32 h-32 shrink-0 flex items-center justify-center">
+          <div className="flex items-center justify-between gap-3">
+            <div className="w-32 h-32 relative shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={DEPT_DATA}
-                    innerRadius={42}
-                    outerRadius={60}
+                    innerRadius={36}
+                    outerRadius={52}
                     paddingAngle={3}
                     dataKey="value"
                   >
@@ -337,23 +549,35 @@ export default function Dashboard() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
+                  <Tooltip 
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-slate-900 text-white text-xs rounded-lg px-2 py-1 shadow-md">
+                            <span className="font-bold">{payload[0].name}: </span>
+                            <span>{payload[0].value}%</span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-xl font-extrabold text-slate-900 leading-none">86</span>
-                <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase mt-1">TOTAL</span>
+                <span className="text-xs font-bold text-slate-800">100%</span>
+                <span className="text-[9px] text-slate-400">Total</span>
               </div>
             </div>
 
-            {/* Department Legend */}
-            <div className="space-y-2 text-xs flex-1 max-w-[170px]">
+            <div className="flex-1 min-w-0 space-y-1.5 pl-1">
               {DEPT_DATA.map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between gap-2 py-0.5">
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }}></span>
-                    <span className="text-slate-600 text-xs font-medium whitespace-nowrap truncate">{item.name}</span>
+                    <span className="text-slate-600 text-xs font-medium truncate" title={item.name}>{item.name}</span>
                   </div>
-                  <span className="font-bold text-slate-800 text-xs tabular-nums text-right shrink-0">{item.value}%</span>
+                  <span className="font-bold text-slate-800 text-xs tabular-nums text-right shrink-0 min-w-[32px]">{item.value}%</span>
                 </div>
               ))}
             </div>

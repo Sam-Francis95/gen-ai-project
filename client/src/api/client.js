@@ -30,6 +30,8 @@ export const updateReferral = (id, data) => api.put(`/referrals/${id}`, data).th
 
 export const updateReferralStatus = (id, data) => api.put(`/referrals/${id}/status`, data).then(unwrap);
 
+export const deleteReferral = (id) => api.delete(`/referrals/${id}`).then(unwrap);
+
 // Feature 1: Patient Recovery Tracker
 export const recordProgressNote = (data) => api.post('/discharge/progress-note', data).then(unwrap);
 export const fetchProgressNotes = (referralId) => api.get(`/discharge/progress-notes/${referralId}`).then(unwrap);

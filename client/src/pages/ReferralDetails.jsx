@@ -22,12 +22,18 @@ export default function ReferralDetails() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('Overview');
 
+  // Demographic state per referral
+  const [patientAge, setPatientAge] = useState('');
+  const [patientGender, setPatientGender] = useState('');
+
   // Edit Modal State
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [editForm, setEditForm] = useState({
     patientName: '',
     phone: '',
+    age: '',
+    gender: '',
     department: '',
     doctor: '',
     priority: 'routine',
@@ -35,38 +41,24 @@ export default function ReferralDetails() {
     notes: ''
   });
 
-  // Dynamic Tabs State
-  const [medicalHistory, setMedicalHistory] = useState([
-    { id: 1, condition: 'Essential Hypertension', status: 'Managed', since: '2022', notes: 'Well controlled on Lisinopril 10mg daily' },
-    { id: 2, condition: 'Type 2 Diabetes Mellitus', status: 'Active', since: '2021', notes: 'Diet and Metformin 500mg, last HbA1c 7.2%' },
-    { id: 3, condition: 'Mild Dyslipidemia', status: 'Active', since: '2023', notes: 'Atorvastatin 20mg at bedtime' }
-  ]);
-  const [allergies, setAllergies] = useState([
-    { id: 1, allergen: 'Penicillin', severity: 'Moderate', reaction: 'Maculopapular cutaneous rash' },
-    { id: 2, allergen: 'Sulfa Drugs', severity: 'Mild', reaction: 'Mild nausea and pruritus' }
-  ]);
-  const [appointments, setAppointments] = useState([
-    { id: 1, date: '02 Oct 2026', time: '10:30 AM', department: 'Cardiology', doctor: 'Dr. Mehta', type: 'Specialist Consultation', status: 'Confirmed', room: 'OPD Suite 204' },
-    { id: 2, date: '24 Sep 2026', time: '02:00 PM', department: 'General Medicine', doctor: 'Dr. Sarah Jenkins', type: 'Initial Triage & Admission', status: 'Completed', room: 'Emergency Room' }
-  ]);
-  const [reports, setReports] = useState([
-    { id: 'rep_1', name: 'Comprehensive Blood Panel & Cardiac Biomarkers', date: '29 Sep 2026', category: 'Hematology', status: 'Verified', size: '2.4 MB' },
-    { id: 'rep_2', name: '12-Lead Electrocardiogram (ECG) Report', date: '29 Sep 2026', category: 'Cardiology', status: 'Verified', size: '1.1 MB' },
-    { id: 'rep_3', name: 'Hospital Inpatient Discharge Summary', date: '30 Sep 2026', category: 'Clinical', status: 'Attested', size: '1.8 MB' }
-  ]);
-  const [medications, setMedications] = useState([
-    { id: 1, name: 'Amoxicillin 500mg', dosage: '1 Capsule', frequency: 'Twice daily (1-0-1)', timing: 'After Food', indication: 'Infection resolution', status: 'Active', duration: '7 days' },
-    { id: 2, name: 'Paracetamol 650mg', dosage: '1 Tablet', frequency: 'As needed (every 6h)', timing: 'After Food', indication: 'Pain & fever control', status: 'Active', duration: '5 days' },
-    { id: 3, name: 'Pantoprazole 40mg', dosage: '1 Tablet', frequency: 'Once daily morning', timing: 'Before Food', indication: 'Gastric mucosal protection', status: 'Active', duration: '14 days' },
-    { id: 4, name: 'Atorvastatin 20mg', dosage: '1 Tablet', frequency: 'Once daily bedtime', timing: 'After Food', indication: 'Lipid stabilization', status: 'Active', duration: 'Ongoing' }
-  ]);
+  // Dynamic Tabs State (Per-Referral)
+  const [medicalHistory, setMedicalHistory] = useState([]);
+  const [allergies, setAllergies] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [reports, setReports] = useState([]);
+  const [medications, setMedications] = useState([]);
 
   // Quick Modals for adding items
   const [addConditionOpen, setAddConditionOpen] = useState(false);
-  const [newCondition, setNewCondition] = useState({ condition: '', status: 'Active', since: '2026', notes: '' });
+  const [newCondition, setNewCondition] = useState({ condition: '', status: 'Active', since: 'Current Intake', notes: '' });
+  const [addAllergyOpen, setAddAllergyOpen] = useState(false);
+  const [newAllergy, setNewAllergy] = useState({ allergen: '', severity: 'Moderate', reaction: '' });
+  const [addAppOpen, setAddAppOpen] = useState(false);
+  const [newApp, setNewApp] = useState({ date: '', time: '10:00 AM', type: 'Follow-up Consultation', room: 'Consultation Suite 101' });
   const [addMedOpen, setAddMedOpen] = useState(false);
   const [newMed, setNewMed] = useState({ name: '', dosage: '1 tab', frequency: 'Twice daily', timing: 'After Food', indication: '', duration: '7 days' });
 
+  // Load and isolate data specifically for this referral ID
   const loadData = async () => {
     try {
       setLoading(true);
@@ -78,6 +70,100 @@ export default function ReferralDetails() {
       setReferral(refData);
       setTransferHistory(histData || []);
       setError(null);
+
+      // Load or set Age & Gender for this patient
+      const savedAge = localStorage.getItem(`careflow_age_${id}`) || (refData.id === 8 ? '46' : '32');
+      const savedGender = localStorage.getItem(`careflow_gender_${id}`) || (refData.id === 8 ? 'Male' : (refData.patient?.name?.toLowerCase().includes('mahathi') ? 'Female' : 'Unspecified'));
+      setPatientAge(savedAge);
+      setPatientGender(savedGender);
+
+      // 1. Isolated Medical History for this Referral
+      const savedHistory = localStorage.getItem(`careflow_medhistory_${id}`);
+      if (savedHistory) {
+        try { setMedicalHistory(JSON.parse(savedHistory)); } catch (_) {}
+      } else {
+        // Referral 8 is the baseline cardiac case; other referrals get their own tailored data
+        if (refData.id === 8) {
+          const defaultRef8 = [
+            { id: 1, condition: 'Community-Acquired Pneumonia', status: 'Managed', since: '2026', notes: 'Right lower lobe consolidation treated with IV antibiotic regimen' },
+            { id: 2, condition: 'Type 2 Diabetes Mellitus', status: 'Active', since: '2021', notes: 'Monitored with regular insulin sliding scale' },
+            { id: 3, condition: 'Essential Hypertension', status: 'Managed', since: '2022', notes: 'Blood pressure stable on prescribed oral therapy' }
+          ];
+          setMedicalHistory(defaultRef8);
+          localStorage.setItem(`careflow_medhistory_${id}`, JSON.stringify(defaultRef8));
+        } else {
+          const dynamicInitial = refData.notes 
+            ? [{ id: 1, condition: refData.notes, status: 'Active', since: 'Presenting Intake', notes: `Presenting complaint documented upon referral to ${refData.department}` }]
+            : [{ id: 1, condition: `${refData.department} Clinical Assessment`, status: 'Active', since: 'Current Intake', notes: `Specialized evaluation under ${refData.doctor || refData.specialist || 'specialist'}` }];
+          setMedicalHistory(dynamicInitial);
+        }
+      }
+
+      // 2. Isolated Allergies for this Referral
+      const savedAllergies = localStorage.getItem(`careflow_allergies_${id}`);
+      if (savedAllergies) {
+        try { setAllergies(JSON.parse(savedAllergies)); } catch (_) {}
+      } else {
+        if (refData.id === 8) {
+          const defaultAllergies = [
+            { id: 1, allergen: 'Penicillin', severity: 'Moderate', reaction: 'Cutaneous skin rash' },
+            { id: 2, allergen: 'Sulfa Drugs', severity: 'Mild', reaction: 'Mild nausea' }
+          ];
+          setAllergies(defaultAllergies);
+        } else {
+          setAllergies([
+            { id: 1, allergen: 'No Known Drug Allergies (NKDA)', severity: 'Screened Negative', reaction: 'Screened at intake; no adverse drug reactions reported' }
+          ]);
+        }
+      }
+
+      // 3. Isolated Appointments for this Referral
+      const savedApps = localStorage.getItem(`careflow_appointments_${id}`);
+      if (savedApps) {
+        try { setAppointments(JSON.parse(savedApps)); } catch (_) {}
+      } else {
+        const appDate = new Date(Date.now() + 86400000 * 2).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        setAppointments([
+          {
+            id: 1,
+            date: appDate,
+            time: '10:30 AM',
+            department: refData.department || 'Specialty Care',
+            doctor: refData.doctor || refData.specialist || 'Attending Physician',
+            type: `${refData.department} Specialist Consultation`,
+            status: refData.status === 'VISITED' ? 'Completed' : (refData.status === 'BOOKED' ? 'Confirmed' : 'Scheduled'),
+            room: `${refData.department || 'Clinical'} Suite 204`
+          }
+        ]);
+      }
+
+      // 4. Isolated Diagnostic Reports for this Referral
+      const savedReports = localStorage.getItem(`careflow_reports_${id}`);
+      if (savedReports) {
+        try { setReports(JSON.parse(savedReports)); } catch (_) {}
+      } else {
+        const repDate = new Date(refData.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        setReports([
+          { id: 'rep_1', name: `${refData.department} Referral Order & Clinical Intake`, date: repDate, category: 'Clinical Intake', status: 'Verified', size: '1.2 MB' }
+        ]);
+      }
+
+      // 5. Isolated Medications for this Referral
+      const savedMeds = localStorage.getItem(`careflow_meds_${id}`);
+      if (savedMeds) {
+        try { setMedications(JSON.parse(savedMeds)); } catch (_) {}
+      } else {
+        if (refData.id === 8) {
+          setMedications([
+            { id: 1, name: 'Oral Antibiotic (Amoxicillin 500mg)', dosage: '1 Capsule', frequency: 'Twice daily (1-0-1)', timing: 'After Food', indication: 'Pneumonia resolution', status: 'Active', duration: '7 days' },
+            { id: 2, name: 'Paracetamol 650mg', dosage: '1 Tablet', frequency: 'Every 6 hours as needed', timing: 'After Food', indication: 'Fever & body ache', status: 'Active', duration: '5 days' },
+            { id: 3, name: 'Pantoprazole 40mg', dosage: '1 Tablet', frequency: 'Once daily in morning', timing: 'Before Food', indication: 'Gastric protection', status: 'Active', duration: '14 days' }
+          ]);
+        } else {
+          setMedications([]);
+        }
+      }
+
     } catch (err) {
       setError('Unable to load referral details.');
     } finally {
@@ -89,10 +175,10 @@ export default function ReferralDetails() {
     loadData();
   }, [id]);
 
-  const patientName = referral?.patient?.name || 'Rahul Kumar';
-  const patientPhone = referral?.patient?.phone || '9876543210';
-  const department = referral?.department || 'Cardiology';
-  const doctor = referral?.doctor || referral?.specialist || 'Dr. Mehta';
+  const patientName = referral?.patient?.name || 'Patient';
+  const patientPhone = referral?.patient?.phone || 'Not available';
+  const department = referral?.department || 'Specialty Care';
+  const doctor = referral?.doctor || referral?.specialist || 'Attending Physician';
   const mrn = `CF-${10200 + Number(id || 1)}`;
 
   // Handle Edit Referral Modal Open
@@ -100,7 +186,9 @@ export default function ReferralDetails() {
     setEditForm({
       patientName: referral?.patient?.name || '',
       phone: referral?.patient?.phone || '',
-      department: referral?.department || 'Cardiology',
+      age: patientAge || '',
+      gender: patientGender || '',
+      department: referral?.department || '',
       doctor: referral?.doctor || referral?.specialist || '',
       priority: referral?.priority || 'routine',
       status: referral?.status || 'CREATED',
@@ -116,6 +204,17 @@ export default function ReferralDetails() {
       setSavingEdit(true);
       const res = await updateReferral(id, editForm);
       setReferral(res.data || res);
+      
+      // Update Age and Gender
+      if (editForm.age) {
+        setPatientAge(editForm.age);
+        localStorage.setItem(`careflow_age_${id}`, editForm.age);
+      }
+      if (editForm.gender) {
+        setPatientGender(editForm.gender);
+        localStorage.setItem(`careflow_gender_${id}`, editForm.gender);
+      }
+
       toast.success('Patient referral updated successfully!', { icon: '✅' });
       setEditModalOpen(false);
     } catch (err) {
@@ -152,21 +251,58 @@ export default function ReferralDetails() {
     }
   };
 
-  // Add condition handler
+  // Add condition handler with per-referral storage
   const handleAddCondition = (e) => {
     e.preventDefault();
     if (!newCondition.condition.trim()) return;
-    setMedicalHistory(prev => [...prev, { ...newCondition, id: Date.now() }]);
-    setNewCondition({ condition: '', status: 'Active', since: '2026', notes: '' });
+    const updated = [...medicalHistory, { ...newCondition, id: Date.now() }];
+    setMedicalHistory(updated);
+    localStorage.setItem(`careflow_medhistory_${id}`, JSON.stringify(updated));
+    setNewCondition({ condition: '', status: 'Active', since: 'Current Intake', notes: '' });
     setAddConditionOpen(false);
     toast.success('Medical diagnosis added to patient history!', { icon: '📋' });
   };
 
-  // Add medication handler
+  // Add allergy handler with per-referral storage
+  const handleAddAllergy = (e) => {
+    e.preventDefault();
+    if (!newAllergy.allergen.trim()) return;
+    const filtered = allergies.filter(a => !a.allergen.includes('NKDA'));
+    const updated = [...filtered, { ...newAllergy, id: Date.now() }];
+    setAllergies(updated);
+    localStorage.setItem(`careflow_allergies_${id}`, JSON.stringify(updated));
+    setNewAllergy({ allergen: '', severity: 'Moderate', reaction: '' });
+    setAddAllergyOpen(false);
+    toast.success('Allergy documented in patient chart!', { icon: '🛡️' });
+  };
+
+  // Add appointment handler with per-referral storage
+  const handleAddAppointment = (e) => {
+    e.preventDefault();
+    const appItem = {
+      id: Date.now(),
+      date: newApp.date || new Date(Date.now() + 86400000 * 3).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      time: newApp.time,
+      department: department,
+      doctor: doctor,
+      type: newApp.type,
+      status: 'Scheduled',
+      room: newApp.room
+    };
+    const updated = [appItem, ...appointments];
+    setAppointments(updated);
+    localStorage.setItem(`careflow_appointments_${id}`, JSON.stringify(updated));
+    setAddAppOpen(false);
+    toast.success('Consultation appointment booked!', { icon: '📅' });
+  };
+
+  // Add medication handler with per-referral storage
   const handleAddMed = (e) => {
     e.preventDefault();
     if (!newMed.name.trim()) return;
-    setMedications(prev => [...prev, { ...newMed, id: Date.now(), status: 'Active' }]);
+    const updated = [...medications, { ...newMed, id: Date.now(), status: 'Active' }];
+    setMedications(updated);
+    localStorage.setItem(`careflow_meds_${id}`, JSON.stringify(updated));
     setNewMed({ name: '', dosage: '1 tab', frequency: 'Twice daily', timing: 'After Food', indication: '', duration: '7 days' });
     setAddMedOpen(false);
     toast.success('Prescription added to patient chart!', { icon: '💊' });
@@ -192,13 +328,43 @@ export default function ReferralDetails() {
     );
   }
 
-  const timelineSteps = [
-    { date: '23 Sep 2026', title: 'Referral Created', desc: `${department} (Priority: ${referral.priority || 'Routine'})`, status: 'completed' },
-    { date: '23 Sep 2026', title: 'AI Summary Generated', desc: 'Draft clinical summary ready for review', status: 'completed' },
-    { date: '24 Sep 2026', title: 'Appointment Scheduled', desc: `With ${doctor} (${department})`, status: 'completed' },
-    { date: '24 Sep 2026', title: 'Specialist Consultation', desc: `Status: ${referral.status || 'ACTIVE'}`, status: 'completed' },
-    { date: '26 Sep 2026', title: 'Discharge Summary Generated', desc: 'Attested by attending clinician', status: 'pending' }
+  // Dynamic Timeline derived from actual referral events & dates
+  const createdDate = referral.createdAt 
+    ? new Date(referral.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    : 'Recently';
+  const updatedDate = referral.updatedAt 
+    ? new Date(referral.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    : createdDate;
+
+  const dynamicTimelineSteps = [
+    {
+      date: createdDate,
+      title: 'Referral Registered',
+      desc: `${department} (Priority: ${(referral.priority || 'Routine').toUpperCase()})`,
+      status: 'completed'
+    },
+    {
+      date: createdDate,
+      title: 'Clinical Assignment',
+      desc: `Assigned to ${doctor} for clinical consultation`,
+      status: 'completed'
+    },
+    {
+      date: updatedDate,
+      title: `Current Status: ${referral.status || 'CREATED'}`,
+      desc: referral.notes ? `Clinical Notes: ${referral.notes}` : `Workflow active under ${department}`,
+      status: referral.status === 'VISITED' ? 'completed' : 'active'
+    }
   ];
+
+  if (referral.status === 'VISITED') {
+    dynamicTimelineSteps.push({
+      date: updatedDate,
+      title: 'Specialist Consultation Completed',
+      desc: 'Patient evaluation completed and clinical orders recorded',
+      status: 'completed'
+    });
+  }
 
   return (
     <div className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto animate-fade-in bg-[#f8fafc]">
@@ -229,7 +395,9 @@ export default function ReferralDetails() {
               </div>
               
               <div className="flex items-center gap-3 text-xs text-slate-500 mt-1 flex-wrap">
-                <span>{referral.department || 'Specialty Care'}</span>
+                <span className="font-semibold text-slate-700">{department}</span>
+                <span className="text-slate-300">•</span>
+                <span>{patientGender ? `${patientGender} • ` : ''}{patientAge ? `${patientAge} years` : 'Age Unspecified'}</span>
                 <span className="text-slate-300">•</span>
                 <span className="flex items-center gap-1">
                   <Phone className="w-3 h-3 text-slate-400" /> {patientPhone}
@@ -361,12 +529,12 @@ export default function ReferralDetails() {
             </h3>
 
             <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-              {timelineSteps.map((step, idx) => (
+              {dynamicTimelineSteps.map((step, idx) => (
                 <div key={idx} className="relative flex items-start gap-4">
                   <div className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-white border-2 border-teal-500 flex items-center justify-center">
                     <div className="w-2 h-2 rounded-full bg-teal-500"></div>
                   </div>
-                  <div className="w-24 shrink-0 text-[11px] text-slate-400 font-medium pt-0.5">
+                  <div className="w-28 shrink-0 text-[11px] text-slate-400 font-medium pt-0.5">
                     {step.date}
                   </div>
                   <div className="flex-1">
@@ -396,15 +564,24 @@ export default function ReferralDetails() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-bold text-slate-900 m-0">Patient Medical History</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Documented chronic conditions, past surgeries, and allergies for {patientName}</p>
+              <p className="text-xs text-slate-500 mt-0.5">Documented clinical conditions, past surgeries, and allergies specifically for {patientName}</p>
             </div>
-            <button
-              onClick={() => setAddConditionOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl cursor-pointer shadow-xs"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Condition</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setAddAllergyOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold rounded-xl cursor-pointer border border-red-200"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Allergy</span>
+              </button>
+              <button
+                onClick={() => setAddConditionOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl cursor-pointer shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Condition</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -419,22 +596,28 @@ export default function ReferralDetails() {
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{medicalHistory.length} Conditions</span>
               </div>
 
-              <div className="space-y-2.5">
-                {medicalHistory.map(item => (
-                  <div key={item.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs text-slate-900">{item.condition}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.2 rounded-full ${item.status === 'Managed' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-                          {item.status}
-                        </span>
+              {medicalHistory.length === 0 ? (
+                <div className="text-center py-6 text-slate-400 text-xs">
+                  No medical conditions documented yet for {patientName}.
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {medicalHistory.map(item => (
+                    <div key={item.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-xs text-slate-900">{item.condition}</span>
+                          <span className={`text-[10px] font-bold px-2 py-0.2 rounded-full ${item.status === 'Managed' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                            {item.status}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-1 m-0">{item.notes}</p>
+                        <span className="text-[10px] text-slate-400 mt-1 block">Timeline: {item.since}</span>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-1 m-0">{item.notes}</p>
-                      <span className="text-[10px] text-slate-400 mt-1 block">Diagnosed: {item.since}</span>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Allergies & Intolerances */}
@@ -463,12 +646,14 @@ export default function ReferralDetails() {
                 ))}
               </div>
 
-              {/* Surgical History */}
+              {/* Past Interventions */}
               <div className="pt-2 border-t border-slate-100">
-                <span className="text-[11px] font-bold text-slate-800 block mb-2">Past Surgical Interventions</span>
+                <span className="text-[11px] font-bold text-slate-800 block mb-2">Clinical Intake Summary</span>
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
-                  <span className="font-semibold text-slate-800">Laparoscopic Appendectomy (2021)</span>
-                  <p className="text-[11px] text-slate-500 m-0 mt-0.5">Uncomplicated surgical recovery at City General Hospital</p>
+                  <span className="font-semibold text-slate-800">{department} Specialist Consultation</span>
+                  <p className="text-[11px] text-slate-500 m-0 mt-0.5">
+                    {referral.notes ? `Reason for referral: "${referral.notes}"` : `Referred under priority: ${(referral.priority || 'routine').toUpperCase()}`}
+                  </p>
                 </div>
               </div>
 
@@ -486,8 +671,8 @@ export default function ReferralDetails() {
           
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-bold text-slate-900 m-0">Referral & Network Transfer Management</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Current referral record #{id} status workflow and audit history</p>
+              <h2 className="text-base font-bold text-slate-900 m-0">Referral Management & Workflow Status</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Current referral record #{id} status workflow for {patientName}</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -533,9 +718,9 @@ export default function ReferralDetails() {
             </div>
 
             <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs space-y-3">
-              <span className="text-[10px] text-slate-400 font-bold uppercase block">Transfer Facility</span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase block">Hospital Facility</span>
               <h4 className="text-sm font-bold text-slate-900 m-0">CareFlow Inpatient Hub</h4>
-              <p className="text-xs text-slate-500 m-0">Electronic Medical Record linked to MRN: {mrn}</p>
+              <p className="text-xs text-slate-500 m-0">MRN: {mrn} • Phone: {patientPhone}</p>
             </div>
 
           </div>
@@ -577,16 +762,10 @@ export default function ReferralDetails() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-bold text-slate-900 m-0">Scheduled Consultations & Visits</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Doctor appointment schedules for {patientName}</p>
+              <p className="text-xs text-slate-500 mt-0.5">Doctor appointment schedules specifically for {patientName}</p>
             </div>
             <button
-              onClick={() => {
-                setAppointments(prev => [
-                  { id: Date.now(), date: '08 Oct 2026', time: '11:00 AM', department: department, doctor: doctor, type: 'Follow-up Review', status: 'Scheduled', room: 'OPD Suite 204' },
-                  ...prev
-                ]);
-                toast.success('Follow-up consultation appointment booked!', { icon: '📅' });
-              }}
+              onClick={() => setAddAppOpen(true)}
               className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl cursor-pointer shadow-xs"
             >
               <Calendar className="w-3.5 h-3.5" />
@@ -633,8 +812,8 @@ export default function ReferralDetails() {
           
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-bold text-slate-900 m-0">Diagnostic Reports & Laboratory Records</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Clinical files, blood work, ECG, and pathology records</p>
+              <h2 className="text-base font-bold text-slate-900 m-0">Diagnostic Reports & Clinical Records</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Clinical files, blood work, ECG, and pathology records for {patientName}</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -700,47 +879,66 @@ export default function ReferralDetails() {
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px] tracking-wider">
-                    <th className="py-3 px-4">Medication & Strength</th>
-                    <th className="py-3 px-4">Dosage & Frequency</th>
-                    <th className="py-3 px-4">Relation to Food</th>
-                    <th className="py-3 px-4">Clinical Indication</th>
-                    <th className="py-3 px-4">Duration</th>
-                    <th className="py-3 px-4">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {medications.map(med => (
-                    <tr key={med.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2">
-                          <Pill className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                          <span className="font-bold text-slate-900">{med.name}</span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 font-semibold text-slate-800">{med.dosage} • {med.frequency}</td>
-                      <td className="py-3.5 px-4">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${med.timing.includes('Before') ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'}`}>
-                          {med.timing}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-600">{med.indication}</td>
-                      <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">{med.duration}</td>
-                      <td className="py-3.5 px-4">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          {med.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {medications.length === 0 ? (
+            <div className="bg-white rounded-2xl p-8 border border-slate-200/90 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                <Pill className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900 m-0">No Prescriptions Recorded Yet</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto m-0">
+                No active medications have been prescribed yet for {patientName}. You can add prescriptions manually or generate a medication plan via Discharge AI.
+              </p>
+              <button
+                onClick={() => setAddMedOpen(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl cursor-pointer shadow-xs mt-2"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Prescribe Medication</span>
+              </button>
             </div>
-          </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px] tracking-wider">
+                      <th className="py-3 px-4">Medication & Strength</th>
+                      <th className="py-3 px-4">Dosage & Frequency</th>
+                      <th className="py-3 px-4">Relation to Food</th>
+                      <th className="py-3 px-4">Clinical Indication</th>
+                      <th className="py-3 px-4">Duration</th>
+                      <th className="py-3 px-4">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {medications.map(med => (
+                      <tr key={med.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-2">
+                            <Pill className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                            <span className="font-bold text-slate-900">{med.name}</span>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 font-semibold text-slate-800">{med.dosage} • {med.frequency}</td>
+                        <td className="py-3.5 px-4">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${med.timing.includes('Before') ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'}`}>
+                            {med.timing}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-600">{med.indication}</td>
+                        <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">{med.duration}</td>
+                        <td className="py-3.5 px-4">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            {med.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
         </div>
       )}
@@ -766,7 +964,7 @@ export default function ReferralDetails() {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <Edit className="w-4 h-4 text-blue-600" />
-                <h3 className="text-base font-bold text-slate-900 m-0">Edit Patient Referral</h3>
+                <h3 className="text-base font-bold text-slate-900 m-0">Edit Patient Referral Details</h3>
               </div>
               <button 
                 onClick={() => setEditModalOpen(false)}
@@ -787,6 +985,31 @@ export default function ReferralDetails() {
                   onChange={(e) => setEditForm(prev => ({ ...prev, patientName: e.target.value }))}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Age</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 32"
+                    value={editForm.age}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, age: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Gender</label>
+                  <select
+                    value={editForm.gender}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, gender: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 font-semibold"
+                  >
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -890,7 +1113,7 @@ export default function ReferralDetails() {
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-scale-in">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900 m-0">Add Diagnosed Condition</h3>
+              <h3 className="text-base font-bold text-slate-900 m-0">Add Medical Diagnosis for {patientName}</h3>
               <button onClick={() => setAddConditionOpen(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
@@ -901,7 +1124,7 @@ export default function ReferralDetails() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Asthma, Hyperlipidemia, Osteoarthritis"
+                  placeholder="e.g. Migraine with aura, Vertigo, Lumbar strain"
                   value={newCondition.condition}
                   onChange={e => setNewCondition(prev => ({ ...prev, condition: e.target.value }))}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
@@ -913,7 +1136,7 @@ export default function ReferralDetails() {
                   <select
                     value={newCondition.status}
                     onChange={e => setNewCondition(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none font-semibold"
                   >
                     <option value="Active">Active</option>
                     <option value="Managed">Managed</option>
@@ -921,7 +1144,7 @@ export default function ReferralDetails() {
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Diagnosed Year</label>
+                  <label className="font-bold text-slate-700 block mb-1">Since / Intake</label>
                   <input
                     type="text"
                     value={newCondition.since}
@@ -934,7 +1157,7 @@ export default function ReferralDetails() {
                 <label className="font-bold text-slate-700 block mb-1">Clinical Notes</label>
                 <input
                   type="text"
-                  placeholder="e.g. Under medication control"
+                  placeholder="e.g. Under active specialist observation"
                   value={newCondition.notes}
                   onChange={e => setNewCondition(prev => ({ ...prev, notes: e.target.value }))}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
@@ -942,7 +1165,125 @@ export default function ReferralDetails() {
               </div>
               <div className="pt-2 flex justify-end gap-2">
                 <button type="button" onClick={() => setAddConditionOpen(false)} className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-xl">Cancel</button>
-                <button type="submit" className="px-4 py-1.5 bg-blue-600 text-white font-bold rounded-xl">Add Condition</button>
+                <button type="submit" className="px-4 py-1.5 bg-blue-600 text-white font-bold rounded-xl">Add Diagnosis</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* ADD ALLERGY MODAL */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {addAllergyOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-scale-in">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 m-0">Add Drug or Food Allergy</h3>
+              <button onClick={() => setAddAllergyOpen(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleAddAllergy} className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Allergen Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Penicillin, NSAIDs, Peanuts"
+                  value={newAllergy.allergen}
+                  onChange={e => setNewAllergy(prev => ({ ...prev, allergen: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
+                />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Severity</label>
+                <select
+                  value={newAllergy.severity}
+                  onChange={e => setNewAllergy(prev => ({ ...prev, severity: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none font-semibold"
+                >
+                  <option value="Severe">Severe (Anaphylaxis risk)</option>
+                  <option value="Moderate">Moderate (Urticaria/Rash)</option>
+                  <option value="Mild">Mild (GI upset)</option>
+                </select>
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Reaction Symptoms</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Skin rashes, swelling, respiratory difficulty"
+                  value={newAllergy.reaction}
+                  onChange={e => setNewAllergy(prev => ({ ...prev, reaction: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
+                />
+              </div>
+              <div className="pt-2 flex justify-end gap-2">
+                <button type="button" onClick={() => setAddAllergyOpen(false)} className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-xl">Cancel</button>
+                <button type="submit" className="px-4 py-1.5 bg-red-600 text-white font-bold rounded-xl">Save Allergy</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* BOOK APPOINTMENT MODAL */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {addAppOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-scale-in">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 m-0">Schedule Consultation for {patientName}</h3>
+              <button onClick={() => setAddAppOpen(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleAddAppointment} className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Consultation Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={newApp.date}
+                    onChange={e => setNewApp(prev => ({ ...prev, date: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Time Slot</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 10:30 AM"
+                    value={newApp.time}
+                    onChange={e => setNewApp(prev => ({ ...prev, time: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Appointment Type</label>
+                <input
+                  type="text"
+                  value={newApp.type}
+                  onChange={e => setNewApp(prev => ({ ...prev, type: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
+                />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Clinic / Suite Location</label>
+                <input
+                  type="text"
+                  value={newApp.room}
+                  onChange={e => setNewApp(prev => ({ ...prev, room: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
+                />
+              </div>
+              <div className="pt-2 flex justify-end gap-2">
+                <button type="button" onClick={() => setAddAppOpen(false)} className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-xl">Cancel</button>
+                <button type="submit" className="px-4 py-1.5 bg-blue-600 text-white font-bold rounded-xl">Confirm Booking</button>
               </div>
             </form>
           </div>
@@ -956,7 +1297,7 @@ export default function ReferralDetails() {
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-scale-in">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900 m-0">Add Prescription</h3>
+              <h3 className="text-base font-bold text-slate-900 m-0">Prescribe Medication for {patientName}</h3>
               <button onClick={() => setAddMedOpen(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
@@ -967,7 +1308,7 @@ export default function ReferralDetails() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Lisinopril 10mg"
+                  placeholder="e.g. Levetiracetam 500mg, Sumatriptan 50mg"
                   value={newMed.name}
                   onChange={e => setNewMed(prev => ({ ...prev, name: e.target.value }))}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
@@ -978,7 +1319,7 @@ export default function ReferralDetails() {
                   <label className="font-bold text-slate-700 block mb-1">Frequency</label>
                   <input
                     type="text"
-                    placeholder="e.g. Once daily"
+                    placeholder="e.g. Twice daily"
                     value={newMed.frequency}
                     onChange={e => setNewMed(prev => ({ ...prev, frequency: e.target.value }))}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
@@ -989,7 +1330,7 @@ export default function ReferralDetails() {
                   <select
                     value={newMed.timing}
                     onChange={e => setNewMed(prev => ({ ...prev, timing: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none font-semibold"
                   >
                     <option value="After Food">After Food</option>
                     <option value="Before Food">Before Food</option>
@@ -998,10 +1339,10 @@ export default function ReferralDetails() {
                 </div>
               </div>
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Indication</label>
+                <label className="font-bold text-slate-700 block mb-1">Clinical Indication</label>
                 <input
                   type="text"
-                  placeholder="e.g. Blood pressure regulation"
+                  placeholder="e.g. Neuro-stabilization, Migraine relief"
                   value={newMed.indication}
                   onChange={e => setNewMed(prev => ({ ...prev, indication: e.target.value }))}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 outline-none"

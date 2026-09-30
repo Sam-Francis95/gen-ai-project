@@ -193,6 +193,11 @@ class SqliteReferralRepository {
       atRisk: atRiskRow ? atRiskRow.count : 0,
     };
   }
+
+  async delete(id) {
+    await this.db.run('DELETE FROM referral_events WHERE referral_id = ?', [id]);
+    await this.db.run('DELETE FROM referrals WHERE id = ?', [id]);
+  }
 }
 
 module.exports = { SqliteReferralRepository };

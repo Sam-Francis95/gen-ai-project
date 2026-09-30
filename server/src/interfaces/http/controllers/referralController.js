@@ -72,6 +72,11 @@ function buildReferralController({
       const stats = await getReferralStats();
       res.json({ data: stats });
     },
+
+    deleteReferral: async (req, res) => {
+      await referralRepo.delete(req.params.id);
+      res.json({ success: true, message: 'Referral deleted successfully' });
+    },
   };
 }
 

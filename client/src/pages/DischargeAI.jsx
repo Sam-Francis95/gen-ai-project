@@ -7,7 +7,7 @@ import {
   Stethoscope, Pill, ShieldAlert, ChevronRight, Apple, Ban,
   Dumbbell, FlaskConical, Clock, Zap, CalendarCheck, FileText, MapPin,
   Shield, Printer, Lock, CheckCircle, Edit3, Sparkles, HeartHandshake, FileCheck,
-  X, RotateCcw
+  X, RotateCcw, Plus
 } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -183,6 +183,81 @@ function DischargeAI({ embedded = false, initialData = {}, defaultTab = 'dischar
     doctorModified: false,
     doctorNotes: ''
   });
+
+  const [isEditingSummary, setIsEditingSummary] = useState(false);
+
+  const handleUpdateStructuredField = (field, value) => {
+    setResult(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        structuredData: {
+          ...prev.structuredData,
+          [field]: value
+        }
+      };
+    });
+    setDoctorModified(true);
+  };
+
+  const handleUpdatePatientSummary = (value) => {
+    setResult(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        patientSummary: value
+      };
+    });
+    setDoctorModified(true);
+  };
+
+  const handleUpdateMedication = (index, field, value) => {
+    setResult(prev => {
+      if (!prev) return prev;
+      const meds = [...(prev.structuredData?.meds || [])];
+      const target = typeof meds[index] === 'object' ? { ...meds[index] } : { name: meds[index] };
+      target[field] = value;
+      meds[index] = target;
+      return {
+        ...prev,
+        structuredData: {
+          ...prev.structuredData,
+          meds
+        }
+      };
+    });
+    setDoctorModified(true);
+  };
+
+  const handleAddMedication = () => {
+    setResult(prev => {
+      if (!prev) return prev;
+      const meds = [...(prev.structuredData?.meds || []), { name: 'New Medication', dosage: '500mg', frequency: 'Twice daily', duration: '5 days' }];
+      return {
+        ...prev,
+        structuredData: {
+          ...prev.structuredData,
+          meds
+        }
+      };
+    });
+    setDoctorModified(true);
+  };
+
+  const handleRemoveMedication = (index) => {
+    setResult(prev => {
+      if (!prev) return prev;
+      const meds = (prev.structuredData?.meds || []).filter((_, i) => i !== index);
+      return {
+        ...prev,
+        structuredData: {
+          ...prev.structuredData,
+          meds
+        }
+      };
+    });
+    setDoctorModified(true);
+  };
 
   // Fetch existing discharge report if it exists for this referral
   useEffect(() => {
@@ -1021,6 +1096,24 @@ function DischargeAI({ embedded = false, initialData = {}, defaultTab = 'dischar
                       <RotateCcw className="w-3 h-3 text-slate-500" />
                       <span>New Analysis</span>
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isEditingSummary) {
+                          toast.success("Clinical modifications saved to summary!", { icon: '💾' });
+                        }
+                        setIsEditingSummary(!isEditingSummary);
+                      }}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                        isEditingSummary 
+                          ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30 hover:bg-blue-700' 
+                          : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs'
+                      }`}
+                      title="Edit diagnosis, medications, and next steps"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>{isEditingSummary ? 'Save Edits' : 'Edit Summary'}</span>
+                    </button>
                     <SeverityBadge severity={sd?.severity} />
                     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${result.validation?.isValid ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
                       {result.validation?.isValid ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
@@ -1047,8 +1140,44 @@ function DischargeAI({ embedded = false, initialData = {}, defaultTab = 'dischar
                   </div>
                 )}
 
-                <p className="text-sm text-slate-700 mt-3 leading-relaxed">{sd?.aiAnalysis}</p>
-                <p className="text-xs text-slate-500 mt-2">Follow-up in <span className="text-indigo-600 font-semibold">{sd?.followUpDays || 7} days</span></p>
+                {isEditingSummary ? (
+                  <div className="mt-4 space-y-3 p-3.5 bg-white/90 rounded-xl border border-indigo-200 shadow-xs animate-in fade-in duration-150">
+                    <div>
+                      <label className="block text-[11px] font-bold text-indigo-700 uppercase mb-1">Primary Diagnosis</label>
+                      <input
+                        type="text"
+                        value={sd?.diagnosis || ''}
+                        onChange={(e) => handleUpdateStructuredField('diagnosis', e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-indigo-700 uppercase mb-1">Clinical Impressions / Notes</label>
+                      <textarea
+                        rows={2}
+                        value={sd?.aiAnalysis || ''}
+                        onChange={(e) => handleUpdateStructuredField('aiAnalysis', e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-semibold text-slate-700">Follow-up in (days):</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={90}
+                        value={sd?.followUpDays || 7}
+                        onChange={(e) => handleUpdateStructuredField('followUpDays', parseInt(e.target.value) || 7)}
+                        className="w-20 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-slate-700 mt-3 leading-relaxed">{sd?.aiAnalysis}</p>
+                    <p className="text-xs text-slate-500 mt-2">Follow-up in <span className="text-indigo-600 font-semibold">{sd?.followUpDays || 7} days</span></p>
+                  </>
+                )}
               </div>
 
               {/* Grid: Medical Sections */}
@@ -1056,23 +1185,96 @@ function DischargeAI({ embedded = false, initialData = {}, defaultTab = 'dischar
 
                 {/* Next Steps */}
                 <SectionCard icon={Zap} title="Next Steps" color="#f59e0b">
-                  <BulletList items={sd?.nextSteps} color="#d97706" icon={ChevronRight} />
+                  {isEditingSummary ? (
+                    <div className="space-y-2">
+                      <textarea
+                        rows={5}
+                        value={(sd?.nextSteps || []).join('\n')}
+                        onChange={(e) => handleUpdateStructuredField('nextSteps', e.target.value.split('\n'))}
+                        placeholder="Enter each clinical next step on a separate line..."
+                        className="w-full bg-amber-50/40 border border-amber-200 rounded-xl p-3 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-amber-400 resize-none font-medium leading-relaxed"
+                      />
+                      <p className="text-[10px] text-amber-700 font-medium">Tip: Type each clinical next step on a separate line</p>
+                    </div>
+                  ) : (
+                    <BulletList items={sd?.nextSteps} color="#d97706" icon={ChevronRight} />
+                  )}
                 </SectionCard>
 
                 {/* Prescribed Medications */}
                 <SectionCard icon={Pill} title="Prescribed Medications" color="#10b981">
-                  <ul className="space-y-3">
-                    {(sd?.meds || []).map((med, i) => {
-                      const m = typeof med === 'object' ? med : { name: med };
-                      return (
-                        <li key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                          <div className="font-semibold text-emerald-700 text-sm">{m.name} {m.dosage && `— ${m.dosage}`}</div>
-                          {m.frequency && <div className="text-xs text-slate-500 mt-0.5">{m.frequency} · {m.duration}</div>}
-                          {m.purpose && <div className="text-xs text-slate-400 mt-1 italic">{m.purpose}</div>}
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  {isEditingSummary ? (
+                    <div className="space-y-3">
+                      {(sd?.meds || []).map((med, i) => {
+                        const m = typeof med === 'object' ? med : { name: med, dosage: '', frequency: '', duration: '', purpose: '' };
+                        return (
+                          <div key={i} className="p-3 bg-emerald-50/40 rounded-xl border border-emerald-200 space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <input
+                                type="text"
+                                value={m.name || ''}
+                                placeholder="Drug Name"
+                                onChange={(e) => handleUpdateMedication(i, 'name', e.target.value)}
+                                className="flex-1 bg-white border border-emerald-200 rounded-lg px-2.5 py-1 text-xs font-bold text-emerald-800 outline-none"
+                              />
+                              <input
+                                type="text"
+                                value={m.dosage || ''}
+                                placeholder="Dosage"
+                                onChange={(e) => handleUpdateMedication(i, 'dosage', e.target.value)}
+                                className="w-24 bg-white border border-emerald-200 rounded-lg px-2 py-1 text-xs text-slate-700 outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveMedication(i)}
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded-md transition-colors cursor-pointer"
+                                title="Remove medication"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <input
+                                type="text"
+                                value={m.frequency || ''}
+                                placeholder="Frequency (e.g. Twice daily)"
+                                onChange={(e) => handleUpdateMedication(i, 'frequency', e.target.value)}
+                                className="bg-white border border-emerald-200 rounded-lg px-2 py-1 text-[11px] text-slate-600 outline-none"
+                              />
+                              <input
+                                type="text"
+                                value={m.duration || ''}
+                                placeholder="Duration (e.g. 7 days)"
+                                onChange={(e) => handleUpdateMedication(i, 'duration', e.target.value)}
+                                className="bg-white border border-emerald-200 rounded-lg px-2 py-1 text-[11px] text-slate-600 outline-none"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={handleAddMedication}
+                        className="w-full py-1.5 border border-dashed border-emerald-300 rounded-xl text-xs font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Medication</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <ul className="space-y-3">
+                      {(sd?.meds || []).map((med, i) => {
+                        const m = typeof med === 'object' ? med : { name: med };
+                        return (
+                          <li key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <div className="font-semibold text-emerald-700 text-sm">{m.name} {m.dosage && `— ${m.dosage}`}</div>
+                            {m.frequency && <div className="text-xs text-slate-500 mt-0.5">{m.frequency} · {m.duration}</div>}
+                            {m.purpose && <div className="text-xs text-slate-400 mt-1 italic">{m.purpose}</div>}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </SectionCard>
 
                 {/* Treatment Plan */}
@@ -1186,9 +1388,19 @@ function DischargeAI({ embedded = false, initialData = {}, defaultTab = 'dischar
                     </button>
                   </div>
                 </div>
-                <div className="p-4 bg-slate-50 rounded-xl text-slate-700 text-sm leading-relaxed border border-slate-100">
-                  {translation || result.patientSummary}
-                </div>
+                {isEditingSummary ? (
+                  <textarea
+                    rows={4}
+                    value={result.patientSummary || ''}
+                    onChange={(e) => handleUpdatePatientSummary(e.target.value)}
+                    placeholder="Enter customized patient instructions..."
+                    className="w-full p-3.5 bg-blue-50/40 rounded-xl text-slate-800 text-sm leading-relaxed border border-blue-200 outline-none focus:ring-2 focus:ring-blue-400 resize-none font-medium"
+                  />
+                ) : (
+                  <div className="p-4 bg-slate-50 rounded-xl text-slate-700 text-sm leading-relaxed border border-slate-100">
+                    {translation || result.patientSummary}
+                  </div>
+                )}
                 <div className="mt-4 flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2 text-xs text-slate-500">
                     <CalendarCheck className="w-4 h-4" />
